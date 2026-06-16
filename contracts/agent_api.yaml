@@ -1,0 +1,625 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Zero to One Agent API",
+        "version": "0.1.0"
+    },
+    "paths": {
+        "/agent/clarity": {
+            "post": {
+                "summary": "Assess Clarity",
+                "operationId": "assess_clarity_agent_clarity_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ClarityRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ClarityResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/agent/clarity/answers": {
+            "post": {
+                "summary": "Reassess Clarity",
+                "operationId": "reassess_clarity_agent_clarity_answers_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ClarityAnswersRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ClarityResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/agent/goals": {
+            "post": {
+                "summary": "Suggest Goals",
+                "operationId": "suggest_goals_agent_goals_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/GoalsRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GoalsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/agent/plan": {
+            "post": {
+                "summary": "Generate Plan",
+                "operationId": "generate_plan_agent_plan_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PlanRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PlanResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/agent/chat": {
+            "post": {
+                "summary": "Chat",
+                "operationId": "chat_agent_chat_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChatRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "ChatMessage": {
+                "properties": {
+                    "role": {
+                        "type": "string",
+                        "enum": [
+                            "user",
+                            "assistant"
+                        ],
+                        "title": "Role"
+                    },
+                    "content": {
+                        "type": "string",
+                        "title": "Content"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "role",
+                    "content"
+                ],
+                "title": "ChatMessage"
+            },
+            "ChatRequest": {
+                "properties": {
+                    "session_id": {
+                        "type": "string",
+                        "title": "Session Id"
+                    },
+                    "scope_type": {
+                        "type": "string",
+                        "enum": [
+                            "step",
+                            "project"
+                        ],
+                        "title": "Scope Type"
+                    },
+                    "scope_step_title": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Scope Step Title"
+                    },
+                    "project_context": {
+                        "$ref": "#/components/schemas/ProjectContext"
+                    },
+                    "history": {
+                        "items": {
+                            "$ref": "#/components/schemas/ChatMessage"
+                        },
+                        "type": "array",
+                        "title": "History"
+                    },
+                    "new_message": {
+                        "type": "string",
+                        "title": "New Message"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "session_id",
+                    "scope_type",
+                    "scope_step_title",
+                    "project_context",
+                    "history",
+                    "new_message"
+                ],
+                "title": "ChatRequest"
+            },
+            "ClarifyingQuestion": {
+                "properties": {
+                    "question": {
+                        "type": "string",
+                        "title": "Question"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "question"
+                ],
+                "title": "ClarifyingQuestion"
+            },
+            "ClarityAnswersRequest": {
+                "properties": {
+                    "idea": {
+                        "type": "string",
+                        "title": "Idea"
+                    },
+                    "answers": {
+                        "items": {
+                            "$ref": "#/components/schemas/QAPair"
+                        },
+                        "type": "array",
+                        "title": "Answers"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "idea",
+                    "answers"
+                ],
+                "title": "ClarityAnswersRequest"
+            },
+            "ClarityRequest": {
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "title": "Category"
+                    },
+                    "description": {
+                        "type": "string",
+                        "title": "Description"
+                    },
+                    "idea": {
+                        "type": "string",
+                        "title": "Idea"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "category",
+                    "description",
+                    "idea"
+                ],
+                "title": "ClarityRequest"
+            },
+            "ClarityResponse": {
+                "properties": {
+                    "clarity_score": {
+                        "type": "number",
+                        "title": "Clarity Score"
+                    },
+                    "needs_clarification": {
+                        "type": "boolean",
+                        "title": "Needs Clarification"
+                    },
+                    "clarifying_questions": {
+                        "items": {
+                            "$ref": "#/components/schemas/ClarifyingQuestion"
+                        },
+                        "type": "array",
+                        "title": "Clarifying Questions"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "clarity_score",
+                    "needs_clarification",
+                    "clarifying_questions"
+                ],
+                "title": "ClarityResponse"
+            },
+            "Goal": {
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "title": "Title"
+                    },
+                    "scope": {
+                        "type": "string",
+                        "title": "Scope"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "title",
+                    "scope"
+                ],
+                "title": "Goal"
+            },
+            "GoalsRequest": {
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "title": "Category"
+                    },
+                    "idea": {
+                        "type": "string",
+                        "title": "Idea"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "category",
+                    "idea"
+                ],
+                "title": "GoalsRequest"
+            },
+            "GoalsResponse": {
+                "properties": {
+                    "goals": {
+                        "items": {
+                            "$ref": "#/components/schemas/Goal"
+                        },
+                        "type": "array",
+                        "title": "Goals"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "goals"
+                ],
+                "title": "GoalsResponse"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "MilestonePlan": {
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "title": "Title"
+                    },
+                    "after_step_index": {
+                        "type": "integer",
+                        "title": "After Step Index"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "title",
+                    "after_step_index"
+                ],
+                "title": "MilestonePlan"
+            },
+            "PlanRequest": {
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "title": "Category"
+                    },
+                    "description": {
+                        "type": "string",
+                        "title": "Description"
+                    },
+                    "idea": {
+                        "type": "string",
+                        "title": "Idea"
+                    },
+                    "goal": {
+                        "type": "string",
+                        "title": "Goal"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "category",
+                    "description",
+                    "idea",
+                    "goal"
+                ],
+                "title": "PlanRequest"
+            },
+            "PlanResponse": {
+                "properties": {
+                    "steps": {
+                        "items": {
+                            "$ref": "#/components/schemas/StepPlan"
+                        },
+                        "type": "array",
+                        "title": "Steps"
+                    },
+                    "milestones": {
+                        "items": {
+                            "$ref": "#/components/schemas/MilestonePlan"
+                        },
+                        "type": "array",
+                        "title": "Milestones"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "steps",
+                    "milestones"
+                ],
+                "title": "PlanResponse"
+            },
+            "ProjectContext": {
+                "properties": {
+                    "idea": {
+                        "type": "string",
+                        "title": "Idea"
+                    },
+                    "goal": {
+                        "type": "string",
+                        "title": "Goal"
+                    },
+                    "steps": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Steps"
+                    },
+                    "decisions": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Decisions"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "idea",
+                    "goal",
+                    "steps",
+                    "decisions"
+                ],
+                "title": "ProjectContext"
+            },
+            "QAPair": {
+                "properties": {
+                    "question": {
+                        "type": "string",
+                        "title": "Question"
+                    },
+                    "answer": {
+                        "type": "string",
+                        "title": "Answer"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "question",
+                    "answer"
+                ],
+                "title": "QAPair"
+            },
+            "StepPlan": {
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "title": "Title"
+                    },
+                    "description": {
+                        "type": "string",
+                        "title": "Description"
+                    },
+                    "order_index": {
+                        "type": "integer",
+                        "title": "Order Index"
+                    },
+                    "intended_start": {
+                        "type": "string",
+                        "title": "Intended Start"
+                    },
+                    "intended_end": {
+                        "type": "string",
+                        "title": "Intended End"
+                    },
+                    "depends_on": {
+                        "items": {
+                            "type": "integer"
+                        },
+                        "type": "array",
+                        "title": "Depends On"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "title",
+                    "description",
+                    "order_index",
+                    "intended_start",
+                    "intended_end",
+                    "depends_on"
+                ],
+                "title": "StepPlan"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    },
+                    "input": {
+                        "title": "Input"
+                    },
+                    "ctx": {
+                        "type": "object",
+                        "title": "Context"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            }
+        }
+    }
+}
