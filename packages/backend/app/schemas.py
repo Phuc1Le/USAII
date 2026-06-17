@@ -113,3 +113,32 @@ class ChatSession(BaseModel):
 
 class SendMessageRequest(BaseModel):
     content: str
+
+# ── Agent response shapes (backend needs to parse these) ─────────
+
+class StepPlan(BaseModel):
+    title: str
+    description: str
+    order_index: int
+    intended_start: str
+    intended_end: str
+    depends_on: list[int]
+
+class MilestonePlan(BaseModel):
+    title: str
+    after_step_index: int
+
+class PlanResponse(BaseModel):
+    steps: list[StepPlan]
+    milestones: list[MilestonePlan]
+
+class PlanRequest(BaseModel):
+    idea: str
+    goal: str
+
+class SubTask(BaseModel):
+    title: str
+    detail: str
+
+class GenerateTasksResponse(BaseModel):
+    tasks: list[SubTask]

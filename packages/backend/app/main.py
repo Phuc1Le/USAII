@@ -1,206 +1,187 @@
-from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from app.models import init_db
-from fastapi.responses import StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
+# packages/backend/app/main.py
 
-from app.schemas import (
-    IntakeRequest, ClarityResult,
-    ClarityAnswersRequest,
-    GoalsRequest, GoalsResponse, Goal,
-    CreateProjectRequest, Project,
-    UpdateTaskRequest, Task,
-    OpenSessionRequest, ChatSession,
-    SendMessageRequest, Step, Milestone,
-    ClarifyingQuestion
-)
+from contextlib import asynccontextmanager
 import os
-USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT", "true").lower() == "true"
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
+import httpx
+
+from app.models import init_db, get_db
+from app import schemas, crud, serializers, agent_client
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
     yield
 
-
 app = FastAPI(title="Zero to One API", version="0.1.0", lifespan=lifespan)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Person A's Vite dev server
+    allow_origins=["http://localhost:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# ── Intake ───────────────────────────────────────────────────────
 
-@app.post("/api/v1/projects/intake", response_model=ClarityResult)
-def submit_idea(body: IntakeRequest):
-    if USE_MOCK_AGENT:
-        return ClarityResult(
-            clarity_score=0.45,
-            needs_clarification=True,
-            clarifying_questions=[
-                ClarifyingQuestion(question="Who is the primary user?"),
-                ClarifyingQuestion(question="What is the one thing it must do?"),
-            ]
-        )
-    # real agent call goes here later
+AGENT_URL = os.environ.get("AGENT_URL", "http://localhost:8001")
+USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT", "true").lower() == "true"
 
-@app.post("/api/v1/projects/intake/answers", response_model=ClarityResult)
-def submit_answers(body: ClarityAnswersRequest):
-    if USE_MOCK_AGENT:
-        return ClarityResult(
-            clarity_score=0.78,
-            needs_clarification=False,
-            clarifying_questions=[]
-        )
-    # real agent call goes here later
+# ── Intake ────────────────────────────────────────────────────────
 
-# ── Goals ────────────────────────────────────────────────────────
+@app.post("/api/v1/projects/intake", response_model=schemas.ClarityResult)
+def submit_idea(body: schemas.IntakeRequest):
+    return agent_client.assess_clarity(body)
 
-@app.post("/api/v1/projects/goals", response_model=GoalsResponse)
-def get_goals(body: GoalsRequest):
-    if USE_MOCK_AGENT:
-        return GoalsResponse(
-            goals=[
-                Goal(
-                    title="Finalize Requirements",
-                    description="Document all requirements and acceptance criteria",
-                    complete_in=3
-                ),
-                Goal(
-                    title="MVP Development",
-                    description="Build core features for minimum viable product",
-                    complete_in=14
-                ),
-                Goal(
-                    title="User Testing",
-                    description="Conduct user testing and gather feedback",
-                    complete_in=7
-                )
-            ]
-        )
-    # real agent call goes here later
 
-# ── Projects ─────────────────────────────────────────────────────
+@app.post("/api/v1/projects/intake/answers", response_model=schemas.ClarityResult)
+def submit_answers(body: schemas.ClarityAnswersRequest):
+    return agent_client.reassess_clarity(body)
 
-@app.post("/api/v1/projects", response_model=Project, status_code=201)
-def create_project(body: CreateProjectRequest):
-    return Project(
-        id="p_" + body.idea.replace(" ", "_").lower()[:20],
-        title=body.idea,
-        category=body.category,
-        description=body.description,
-        idea=body.idea,
-        goal=body.goal,
-        status="active",
-        steps=[],
-        milestones=[]
+
+# ── Goals ─────────────────────────────────────────────────────────
+
+@app.post("/api/v1/projects/goals", response_model=schemas.GoalsResponse)
+def get_goals(body: schemas.GoalsRequest):
+    return agent_client.suggest_goals(body)
+
+
+# ── Projects ──────────────────────────────────────────────────────
+
+@app.post("/api/v1/projects", response_model=schemas.Project, status_code=201)
+def create_project(body: schemas.CreateProjectRequest, db: Session = Depends(get_db)):
+    # 1. save the project row
+    db_project = crud.create_project(db, body)
+
+    # 2. ask the agent for a plan
+    plan = agent_client.generate_plan(
+        schemas.PlanRequest(idea=body.idea, goal=body.goal)
     )
 
-@app.get("/api/v1/projects/{project_id}", response_model=Project)
-def get_project(project_id: str):
-    return Project(
-        id="p1",
-        title="My demo app",
-        category="Technology",
-        description="Building an app",
-        idea="An app that helps people go from idea to launch",
-        goal="MVP",
-        status="active",
-        steps=[
-            Step(
-                id="s1",
-                title="Define requirements",
-                description="Write down what the app must do",
-                order_index=1,
-                status="todo",
-                intended_start="2026-06-17",
-                intended_end="2026-06-19",
-                depends_on=[],
-                tasks=[]
-            ),
-            Step(
-                id="s2",
-                title="Build the API",
-                description="Create backend endpoints",
-                order_index=2,
-                status="todo",
-                intended_start="2026-06-20",
-                intended_end="2026-06-27",
-                depends_on=["s1"],
-                tasks=[]
-            ),
-        ],
-        milestones=[
-            Milestone(
-                id="m1",
-                title="First working prototype",
-                step_id="s2",
-                achieved_at=None
-            )
-        ]
+    # 3. save steps + milestones
+    db_steps = crud.create_steps_from_plan(db, db_project.id, plan.steps)
+    crud.create_milestones_from_plan(db, db_project.id, plan.milestones, db_steps)
+
+    # 4. reload and return
+    db.refresh(db_project)
+    return serializers.serialize_project(db_project)
+
+
+@app.get("/api/v1/projects/{project_id}", response_model=schemas.Project)
+def get_project(project_id: int, db: Session = Depends(get_db)):
+    db_project = crud.get_project(db, project_id)
+    if not db_project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return serializers.serialize_project(db_project)
+
+
+# ── Steps / Tasks ─────────────────────────────────────────────────
+
+@app.get("/api/v1/steps/{step_id}/tasks", response_model=list[schemas.Task])
+def get_tasks(step_id: int, db: Session = Depends(get_db)):
+    # lazy generation: if no tasks exist yet, ask the agent to generate them
+    existing = crud.get_tasks_for_step(db, step_id)
+    if existing:
+        return [serializers.serialize_task(t) for t in existing]
+
+    # get the step so we can pass context to the agent
+    step = db.query(__import__("app.models", fromlist=["Step"]).Step).filter_by(id=step_id).first()
+    if not step:
+        raise HTTPException(status_code=404, detail="Step not found")
+
+    step_plan = schemas.StepPlan(
+        title=step.title,
+        description=step.description or "",
+        order_index=step.order_index,
+        intended_start=step.intended_start or "",
+        intended_end=step.intended_end or "",
+        depends_on=[],
     )
+    subtasks = agent_client.generate_tasks(step_plan, step.project.idea)
+    db_tasks = crud.create_tasks_for_step(db, step_id, subtasks)
+    return [serializers.serialize_task(t) for t in db_tasks]
 
-# ── Steps / Tasks ────────────────────────────────────────────────
 
-@app.get("/api/v1/steps/{step_id}/tasks", response_model=list[Task])
-def get_tasks(step_id: str):
-    return [
-        Task(
-            id="t1",
-            title="Write specification document",
-            detail="Create detailed spec with acceptance criteria",
-            status="todo",
-            order_index=1
-        ),
-        Task(
-            id="t2",
-            title="Create wireframes",
-            detail="Design UI mockups for key screens",
-            status="todo",
-            order_index=2
-        ),
-        Task(
-            id="t3",
-            title="Get stakeholder approval",
-            detail="Present to stakeholders and get sign-off",
-            status="todo",
-            order_index=3
-        )
-    ]
+@app.patch("/api/v1/tasks/{task_id}", response_model=schemas.Task)
+def update_task(task_id: int, body: schemas.UpdateTaskRequest, db: Session = Depends(get_db)):
+    task = crud.update_task(db, task_id, body)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return serializers.serialize_task(task)
 
-@app.patch("/api/v1/tasks/{task_id}", response_model=Task)
-def update_task(task_id: str, body: UpdateTaskRequest):
-    return Task(
-        id=task_id,
-        title=body.title or "Updated task",
-        detail="Task details",
-        status=body.status or "todo",
-        order_index=1
-    )
 
-# ── Chat ─────────────────────────────────────────────────────────
+# ── Chat ──────────────────────────────────────────────────────────
 
-@app.post("/api/v1/chat/sessions", response_model=ChatSession)
-def open_session(body: OpenSessionRequest):
-    return ChatSession(
-        id="sess_" + body.project_id,
-        project_id=body.project_id,
-        scope_type=body.scope_type,
-        scope_step_id=body.scope_step_id,
-        messages=[]
-    )
+@app.post("/api/v1/chat/sessions", response_model=schemas.ChatSession)
+def open_session(body: schemas.OpenSessionRequest, db: Session = Depends(get_db)):
+    session = crud.get_or_create_session(db, body)
+    return serializers.serialize_session(session)
+
 
 @app.post("/api/v1/chat/sessions/{session_id}/messages")
-def send_message(session_id: str, body: SendMessageRequest):
+def send_message(
+    session_id: int,
+    body: schemas.SendMessageRequest,
+    db: Session = Depends(get_db)
+):
+    session = crud.get_session(db, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # save user message
+    crud.save_message(db, session_id, "user", body.content)
+
     if USE_MOCK_AGENT:
-        def event_generator():
-            words = ["I", " understand", " your", " request", ".", " Let", " me", " help", " you", " move", " forward", "."]
+        def mock_stream():
+            words = ["I", " understand", " your", " request", ".",
+                     " Let", " me", " help", " you", " move", " forward", "."]
             for word in words:
                 yield f"data: {word}\n\n"
-            yield "data: [DONE]\n\n"   # ← signals the stream is finished
-        return StreamingResponse(event_generator(), media_type="text/event-stream")
-    # real agent call goes here later
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(mock_stream(), media_type="text/event-stream")
 
-# ── Decompose (stretch) ──────────────────────────────────────────
+    # real agent call — assemble context then stream
+    project = session.project
+    decisions = crud.get_decisions(db, project.id)
 
-# add when you get to the stretch features
+    chat_request = {
+        "session_id": str(session_id),
+        "scope_type": session.scope_type,
+        "scope_step_title": None,   # TODO: look up step title if scope = step
+        "project_context": {
+            "idea": project.idea,
+            "goal": project.goal or "",
+            "steps": [s.title for s in project.steps],
+            "decisions": [d.content for d in decisions],
+        },
+        "history": [
+            {"role": m.role, "content": m.content}
+            for m in session.messages[-10:]  # last 10 messages
+        ],
+        "new_message": body.content,
+    }
+
+    def real_stream():
+        full_response = ""
+        with httpx.stream("POST", f"{AGENT_URL}/agent/chat", json=chat_request) as r:
+            for line in r.iter_lines():
+                if line.startswith("data: "):
+                    token = line[6:]
+                    if token == "[DONE]":
+                        break
+                    full_response += token
+                    yield f"data: {token}\n\n"
+
+        # save the complete assistant response after streaming finishes
+        crud.save_message(db, session_id, "assistant", full_response)
+
+        # check if the response contains a decision to save
+        if "DECISION:" in full_response:
+            for line in full_response.split("\n"):
+                if line.startswith("DECISION:"):
+                    crud.save_decision(db, project.id, line[9:].strip())
+
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(real_stream(), media_type="text/event-stream")

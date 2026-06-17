@@ -90,4 +90,14 @@ class ChatRequest(BaseModel):
     new_message: str
 
 # chat response is SSE stream — no response model needed
+class SubTask(BaseModel):
+    title: str
+    detail: str
 
+class GenerateTasksRequest(BaseModel):
+    step_title: str
+    step_description: str
+    project_idea: str
+
+class GenerateTasksResponse(BaseModel):
+    tasks: list[SubTask]

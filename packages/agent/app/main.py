@@ -8,7 +8,8 @@ from app.schemas import (
     GoalsRequest, GoalsResponse,
     PlanRequest, PlanResponse,
     ChatRequest,
-    ClarifyingQuestion, Goal, StepPlan, MilestonePlan
+    ClarifyingQuestion, Goal, StepPlan, MilestonePlan,
+    GenerateTasksRequest, GenerateTasksResponse, SubTask
 )
 
 app = FastAPI(title="Zero to One Agent API", version="0.1.0")
@@ -94,6 +95,15 @@ def generate_plan(body: PlanRequest):
             MilestonePlan(title="Backend MVP ready", after_step_index=3),
             MilestonePlan(title="Frontend MVP ready", after_step_index=4),
             MilestonePlan(title="Launch ready", after_step_index=5),
+        ]
+    )
+@app.post("/agent/tasks", response_model=GenerateTasksResponse)
+def generate_tasks(body: GenerateTasksRequest):
+    return GenerateTasksResponse(
+        tasks= [
+            SubTask(title="Research options", detail="Look into available tools"),
+            SubTask(title="Make a decision", detail="Pick the best approach"),
+            SubTask(title="Implement it", detail="Build the thing"),
         ]
     )
 

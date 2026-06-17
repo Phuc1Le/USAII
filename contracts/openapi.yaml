@@ -167,7 +167,7 @@
                         "in": "path",
                         "required": true,
                         "schema": {
-                            "type": "string",
+                            "type": "integer",
                             "title": "Project Id"
                         }
                     }
@@ -206,7 +206,7 @@
                         "in": "path",
                         "required": true,
                         "schema": {
-                            "type": "string",
+                            "type": "integer",
                             "title": "Step Id"
                         }
                     }
@@ -249,7 +249,7 @@
                         "in": "path",
                         "required": true,
                         "schema": {
-                            "type": "string",
+                            "type": "integer",
                             "title": "Task Id"
                         }
                     }
@@ -336,7 +336,7 @@
                         "in": "path",
                         "required": true,
                         "schema": {
-                            "type": "string",
+                            "type": "integer",
                             "title": "Session Id"
                         }
                     }

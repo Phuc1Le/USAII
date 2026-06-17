@@ -157,6 +157,44 @@
                 }
             }
         },
+        "/agent/tasks": {
+            "post": {
+                "summary": "Generate Tasks",
+                "operationId": "generate_tasks_agent_tasks_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/GenerateTasksRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GenerateTasksResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/agent/chat": {
             "post": {
                 "summary": "Chat",
@@ -351,6 +389,45 @@
                     "clarifying_questions"
                 ],
                 "title": "ClarityResponse"
+            },
+            "GenerateTasksRequest": {
+                "properties": {
+                    "step_title": {
+                        "type": "string",
+                        "title": "Step Title"
+                    },
+                    "step_description": {
+                        "type": "string",
+                        "title": "Step Description"
+                    },
+                    "project_idea": {
+                        "type": "string",
+                        "title": "Project Idea"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "step_title",
+                    "step_description",
+                    "project_idea"
+                ],
+                "title": "GenerateTasksRequest"
+            },
+            "GenerateTasksResponse": {
+                "properties": {
+                    "tasks": {
+                        "items": {
+                            "$ref": "#/components/schemas/SubTask"
+                        },
+                        "type": "array",
+                        "title": "Tasks"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "tasks"
+                ],
+                "title": "GenerateTasksResponse"
             },
             "Goal": {
                 "properties": {
@@ -579,6 +656,24 @@
                     "depends_on"
                 ],
                 "title": "StepPlan"
+            },
+            "SubTask": {
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "title": "Title"
+                    },
+                    "detail": {
+                        "type": "string",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "title",
+                    "detail"
+                ],
+                "title": "SubTask"
             },
             "ValidationError": {
                 "properties": {
