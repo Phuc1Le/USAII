@@ -49,8 +49,8 @@ class GoalsResponse(BaseModel):
 # ── /agent/plan ──────────────────────────────────────────────────
 
 class PlanRequest(BaseModel):
-    category: str
-    description: str
+    category: str | None = None
+    description: str | None = None
     idea: str
     goal: str
 
