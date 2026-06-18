@@ -70,3 +70,11 @@ cd packages/frontend && npm run dev
 - Frontend: http://localhost:5173
 - Backend: http://localhost:8000
 - Agent: http://localhost:8001
+
+## curl command:
+# curl
+Invoke-WebRequest -Uri http://localhost:8000/openapi.json -OutFile contracts\openapi.yaml 
+Invoke-WebRequest -Uri http://localhost:8001/openapi.json -OutFile contracts\agent_api.yaml
+# format
+(Get-Content contracts/openapi.yaml) | python -m json.tool | Set-Content contracts/openapi.yaml
+(Get-Content contracts/agent_api.yaml) | python -m json.tool | Set-Content contracts/agent_api.yaml

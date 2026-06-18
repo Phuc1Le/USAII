@@ -209,6 +209,8 @@ export interface components {
             needs_clarification: boolean;
             /** Clarifying Questions */
             clarifying_questions: components["schemas"]["ClarifyingQuestion"][];
+            /** Enriched Idea */
+            enriched_idea?: string | null;
         };
         /** CreateProjectRequest */
         CreateProjectRequest: {
@@ -234,6 +236,8 @@ export interface components {
         GoalsRequest: {
             /** Category */
             category: string;
+            /** Description */
+            description: string;
             /** Idea */
             idea: string;
         };

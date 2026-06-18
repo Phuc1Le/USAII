@@ -17,6 +17,7 @@ class ClarityResponse(BaseModel):
     clarity_score: float
     needs_clarification: bool
     clarifying_questions: list[ClarifyingQuestion]
+    enriched_idea: str | None = None   # ← add this
 
 # ── /agent/clarity/answers ───────────────────────────────────────
 
@@ -34,11 +35,13 @@ class ClarityAnswersRequest(BaseModel):
 
 class GoalsRequest(BaseModel):
     category: str
+    description: str
     idea: str
 
 class Goal(BaseModel):
     title: str
-    scope: str
+    description: str
+    complete_in: int
 
 class GoalsResponse(BaseModel):
     goals: list[Goal]

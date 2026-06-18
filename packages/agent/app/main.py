@@ -27,20 +27,21 @@ def assess_clarity(body: ClarityRequest):
 
 @app.post("/agent/clarity/answers", response_model=ClarityResponse)
 def reassess_clarity(body: ClarityAnswersRequest):
+    answers_text = " ".join(pair.answer for pair in body.answers)  # ← dot notation
     return ClarityResponse(
         clarity_score=0.92,
         needs_clarification=False,
-        clarifying_questions=[]
+        clarifying_questions=[],
+        enriched_idea=f"{body.idea} {answers_text}"   # ← combined
     )
 
 @app.post("/agent/goals", response_model=GoalsResponse)
 def suggest_goals(body: GoalsRequest):
     return GoalsResponse(
         goals=[
-            Goal(title="Market research", scope="Understand user needs and market opportunity"),
-            Goal(title="MVP scope definition", scope="Define core features for launch"),
-            Goal(title="Technical architecture", scope="Plan backend and frontend stack"),
-            Goal(title="Build and test", scope="Develop MVP and conduct testing"),
+            Goal(title="Prototype", description="A clickable mockup that proves the core experience.", complete_in=7),
+            Goal(title="MVP", description="Core flow only, with enough polish for early users.", complete_in=21),
+            Goal(title="Production", description="A deployable version with reliability and handoff polish.", complete_in=45),
         ]
     )
 

@@ -1,0 +1,308 @@
+import { useMemo, useState } from "react"
+import type { FormEvent } from "react"
+import { useMutation } from "@tanstack/react-query"
+import { apiFetch } from "../../api/client"
+import type {
+  ClarityAnswersRequest,
+  ClarityResult,
+  GoalsRequest,
+  GoalsResponse,
+  IntakeRequest,
+} from "../../api"
+import ChoicePanel from "./components/ChoicePanel"
+import ThinkingPanel from "./components/ThinkingPanel"
+import TopNav from "./components/TopNav"
+import { categories, descriptionOptions, fallbackDescriptions } from "./intakeOptions"
+import type { IntakeStep } from "./types"
+import "./IntakeFlow.css"
+
+export default function IntakeFlow() {
+  const [step, setStep] = useState<IntakeStep>("landing")
+  const [category, setCategory] = useState("")
+  const [description, setDescription] = useState("")
+  const [idea, setIdea] = useState("")
+  const [clarity, setClarity] = useState<ClarityResult | null>(null)
+  const [goals, setGoals] = useState<GoalsResponse["goals"]>([])
+  const [goalIdea, setGoalIdea] = useState("")
+  const [questionIndex, setQuestionIndex] = useState(0)
+  const [answers, setAnswers] = useState<string[]>([])
+
+  const goalsMutation = useMutation({
+    mutationFn: (payload: GoalsRequest) =>
+      apiFetch<GoalsResponse>("/projects/goals", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    onMutate: () => setStep("goalThinking"),
+    onSuccess: (result) => {
+      setGoals(result.goals)
+      setStep("goals")
+    },
+    onError: () => setStep("clarify"),
+  })
+
+  const answersMutation = useMutation({
+    mutationFn: (payload: ClarityAnswersRequest) =>
+      apiFetch<ClarityResult>("/projects/intake/answers", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    onMutate: () => setStep("thinking"),
+    onSuccess: (result) => {
+      setClarity(result)
+      requestGoalSuggestions(result)
+    },
+    onError: () => setStep("clarify"),
+  })
+
+  const intakeMutation = useMutation({
+    mutationFn: (payload: IntakeRequest) =>
+      apiFetch<ClarityResult>("/projects/intake", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    onMutate: () => setStep("thinking"),
+    onSuccess: (result) => {
+      setClarity(result)
+      setQuestionIndex(0)
+      setAnswers([])
+      if (result.needs_clarification && result.clarifying_questions.length > 0) {
+        setStep("clarify")
+        return
+      }
+      requestGoalSuggestions(result)
+    },
+    onError: () => setStep("idea"),
+  })
+
+  const descriptions = useMemo(
+    () => descriptionOptions[category] ?? fallbackDescriptions,
+    [category]
+  )
+
+  const currentQuestion = clarity?.clarifying_questions[questionIndex]
+  const progressLabel = step === "clarify" && clarity
+    ? `Question ${questionIndex + 1} of ${clarity.clarifying_questions.length}`
+    : undefined
+
+  function submitCategory(value: string) {
+    if (!value.trim()) return
+    setCategory(value.trim())
+    setDescription("")
+    setStep("description")
+  }
+
+  function submitDescription(value: string) {
+    if (!value.trim()) return
+    setDescription(value.trim())
+    setStep("idea")
+  }
+
+  function submitIdea(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!category.trim() || !description.trim() || !idea.trim()) return
+    intakeMutation.mutate({
+      category: category.trim(),
+      description: description.trim(),
+      idea: idea.trim(),
+    })
+  }
+
+  function requestGoalSuggestions(result: ClarityResult | null = clarity) {
+    const enrichedIdea = result?.enriched_idea?.trim()
+    const ideaForGoals = enrichedIdea || idea.trim()
+    setGoalIdea(ideaForGoals)
+    goalsMutation.mutate({
+      category: category.trim(),
+      description: description.trim(),
+      idea: ideaForGoals,
+    })
+  }
+
+  function submitClarifyingAnswers() {
+    if (!clarity) return
+    answersMutation.mutate({
+      idea: idea.trim(),
+      answers: clarity.clarifying_questions.map((question, index) => ({
+        question: question.question,
+        answer: answers[index]?.trim() ?? "",
+      })),
+    })
+  }
+
+  function goToNextQuestion({ submitAtEnd = true }: { submitAtEnd?: boolean } = {}) {
+    if (!clarity) return
+    const isLast = questionIndex >= clarity.clarifying_questions.length - 1
+    if (isLast) {
+      if (submitAtEnd) {
+        submitClarifyingAnswers()
+      } else {
+        requestGoalSuggestions()
+      }
+      return
+    }
+    setQuestionIndex((index) => index + 1)
+  }
+
+  function updateAnswer(value: string) {
+    setAnswers((current) => {
+      const next = [...current]
+      next[questionIndex] = value
+      return next
+    })
+  }
+
+  return (
+    <main className="idea-shell">
+      <TopNav />
+      <section className="hero-stage">
+        {step === "landing" && (
+          <div className="landing-copy">
+            <h1>Welcome to iDEA</h1>
+            <p>Let's get started</p>
+            <button className="primary-button" onClick={() => setStep("category")}>
+              Dive in
+            </button>
+          </div>
+        )}
+
+        {step === "category" && (
+          <ChoicePanel
+            key="category"
+            eyebrow="First shape"
+            title="Choose your category"
+            value={category}
+            options={categories}
+            placeholder="Type a category"
+            submitLabel="Continue"
+            onBack={() => setStep("landing")}
+            onSubmit={submitCategory}
+          />
+        )}
+
+        {step === "description" && (
+          <ChoicePanel
+            key="description"
+            eyebrow={category}
+            title="Choose a description"
+            value={description}
+            options={descriptions}
+            placeholder="Type what you want to build"
+            submitLabel="Continue"
+            onBack={() => setStep("category")}
+            onSubmit={submitDescription}
+          />
+        )}
+
+        {step === "idea" && (
+          <form className="form-panel idea-panel" onSubmit={submitIdea}>
+            <div>
+              <span className="eyebrow">{category} / {description}</span>
+              <h1>Jot down your idea here ....</h1>
+            </div>
+            <textarea
+              value={idea}
+              onChange={(event) => setIdea(event.target.value)}
+              placeholder="Write the raw version. Fuzzy is welcome."
+              rows={7}
+            />
+            {intakeMutation.isError && (
+              <p className="error-text">The backend did not answer. Check that it is running on port 8000.</p>
+            )}
+            <div className="panel-actions">
+              <button type="button" className="secondary-button" onClick={() => setStep("description")}>
+                Back
+              </button>
+              <button type="submit" className="primary-button" disabled={!idea.trim() || intakeMutation.isPending}>
+                Submit idea
+              </button>
+            </div>
+          </form>
+        )}
+
+        {step === "thinking" && <ThinkingPanel />}
+
+        {step === "goalThinking" && (
+          <ThinkingPanel
+            eyebrow="Suggesting goals"
+            title="Shaping the path..."
+            message="Using your category, description, and enriched idea to suggest the next ambition level."
+          />
+        )}
+
+        {step === "clarify" && currentQuestion && (
+          <form
+            className="form-panel idea-panel question-panel"
+            onSubmit={(event) => {
+              event.preventDefault()
+              goToNextQuestion()
+            }}
+          >
+            <div>
+              <span className="eyebrow">{progressLabel}</span>
+              <h1>{currentQuestion.question}</h1>
+            </div>
+            <textarea
+              value={answers[questionIndex] ?? ""}
+              onChange={(event) => updateAnswer(event.target.value)}
+              placeholder="Add a quick answer, or skip this question."
+              rows={6}
+            />
+            <div className="panel-actions three-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => requestGoalSuggestions()}
+                disabled={goalsMutation.isPending || answersMutation.isPending}
+              >
+                Skip assessment
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => goToNextQuestion({ submitAtEnd: false })}
+                disabled={goalsMutation.isPending || answersMutation.isPending}
+              >
+                Skip question
+              </button>
+              <button type="submit" className="primary-button" disabled={goalsMutation.isPending || answersMutation.isPending}>
+                Next
+              </button>
+            </div>
+            {(answersMutation.isError || goalsMutation.isError) && (
+              <p className="error-text">The backend did not answer. Check that it is running on port 8000.</p>
+            )}
+          </form>
+        )}
+
+        {step === "goals" && (
+          <div className="form-panel result-panel goals-panel">
+            <span className="eyebrow">Goal suggestions</span>
+            <h1>Choose where this idea should land.</h1>
+            <p>
+              Clarity score: {Math.round((clarity?.clarity_score ?? 0) * 100)}%.
+              Goals are based on: {goalIdea}
+            </p>
+            <div className="goal-list">
+              {goals.map((goal) => (
+                <button type="button" className="goal-option" key={goal.title}>
+                  <span>{goal.title}</span>
+                  <small>{goal.description}</small>
+                  <strong>{goal.complete_in} days</strong>
+                </button>
+              ))}
+            </div>
+            <div className="panel-actions">
+              <button className="secondary-button" onClick={() => setStep("idea")}>
+                Back to idea
+              </button>
+              <button className="primary-button" onClick={() => setStep("category")}>
+                Start another idea
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+    </main>
+  )
+}

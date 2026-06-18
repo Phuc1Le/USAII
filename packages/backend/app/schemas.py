@@ -60,15 +60,21 @@ class ClarityResult(BaseModel):
     clarity_score: float
     needs_clarification: bool
     clarifying_questions: list[ClarifyingQuestion]
+    enriched_idea: str | None = None   
+
+class QAPair(BaseModel):
+    question: str
+    answer: str
 
 class ClarityAnswersRequest(BaseModel):
     idea: str
-    answers: list[dict]           # [{question: str, answer: str}]
+    answers: list[QAPair]  # ← matches agent's QAPair  
 
 # ── Goals ────────────────────────────────────────────────────────
 
 class GoalsRequest(BaseModel):
     category: str
+    description: str
     idea: str
 
 class Goal(BaseModel):

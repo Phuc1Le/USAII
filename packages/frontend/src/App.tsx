@@ -1,6 +1,5 @@
-// src/App.tsx
-import ProjectPage from "./features/project/ProjectPage"
+import IntakeFlow from "./features/intake/IntakeFlow"
 
 export default function App() {
-  return <ProjectPage projectId="1" />
+  return <IntakeFlow />
 }

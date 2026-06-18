@@ -25,10 +25,12 @@ def assess_clarity(body: schemas.IntakeRequest) -> schemas.ClarityResult:
 
 def reassess_clarity(body: schemas.ClarityAnswersRequest) -> schemas.ClarityResult:
     if USE_MOCK_AGENT:
+        answers_text = " ".join(pair.answer for pair in body.answers)
         return schemas.ClarityResult(
             clarity_score=0.85,
             needs_clarification=False,
-            clarifying_questions=[]
+            clarifying_questions=[],
+            enriched_idea=f"{body.idea} {answers_text}"   # ← combined
         )
     res = httpx.post(f"{AGENT_URL}/agent/clarity/answers", json=body.model_dump())
     res.raise_for_status()
@@ -38,9 +40,9 @@ def reassess_clarity(body: schemas.ClarityAnswersRequest) -> schemas.ClarityResu
 def suggest_goals(body: schemas.GoalsRequest) -> schemas.GoalsResponse:
     if USE_MOCK_AGENT:
         return schemas.GoalsResponse(goals=[
-            schemas.Goal(title="Prototype", scope="A clickable mockup"),
-            schemas.Goal(title="MVP", scope="Core flow only"),
-            schemas.Goal(title="Production", scope="Polished and deployable"),
+            schemas.Goal(title="Prototype", description="A clickable mockup that proves the core experience.", complete_in=7),
+            schemas.Goal(title="MVP", description="Core flow only, with enough polish for early users.", complete_in=21),
+            schemas.Goal(title="Production", description="A deployable version with reliability and handoff polish.", complete_in=45),
         ])
     res = httpx.post(f"{AGENT_URL}/agent/goals", json=body.model_dump())
     res.raise_for_status()

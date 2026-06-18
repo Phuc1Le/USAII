@@ -380,6 +380,17 @@
                         },
                         "type": "array",
                         "title": "Clarifying Questions"
+                    },
+                    "enriched_idea": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Enriched Idea"
                     }
                 },
                 "type": "object",
@@ -435,15 +446,20 @@
                         "type": "string",
                         "title": "Title"
                     },
-                    "scope": {
+                    "description": {
                         "type": "string",
-                        "title": "Scope"
+                        "title": "Description"
+                    },
+                    "complete_in": {
+                        "type": "integer",
+                        "title": "Complete In"
                     }
                 },
                 "type": "object",
                 "required": [
                     "title",
-                    "scope"
+                    "description",
+                    "complete_in"
                 ],
                 "title": "Goal"
             },
@@ -453,6 +469,10 @@
                         "type": "string",
                         "title": "Category"
                     },
+                    "description": {
+                        "type": "string",
+                        "title": "Description"
+                    },
                     "idea": {
                         "type": "string",
                         "title": "Idea"
@@ -461,6 +481,7 @@
                 "type": "object",
                 "required": [
                     "category",
+                    "description",
                     "idea"
                 ],
                 "title": "GoalsRequest"
