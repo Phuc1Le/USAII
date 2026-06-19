@@ -5,9 +5,12 @@ import { apiFetch } from "../../api/client"
 import type {
   ClarityAnswersRequest,
   ClarityResult,
+  CreateProjectRequest,
+  Goal,
   GoalsRequest,
   GoalsResponse,
   IntakeRequest,
+  Project,
 } from "../../api"
 import ChoicePanel from "./components/ChoicePanel"
 import ThinkingPanel from "./components/ThinkingPanel"
@@ -16,7 +19,11 @@ import { categories, descriptionOptions, fallbackDescriptions } from "./intakeOp
 import type { IntakeStep } from "./types"
 import "./IntakeFlow.css"
 
-export default function IntakeFlow() {
+type IntakeFlowProps = {
+  onProjectCreated: (project: Project) => void
+}
+
+export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
   const [step, setStep] = useState<IntakeStep>("landing")
   const [category, setCategory] = useState("")
   const [description, setDescription] = useState("")
@@ -24,18 +31,33 @@ export default function IntakeFlow() {
   const [clarity, setClarity] = useState<ClarityResult | null>(null)
   const [goals, setGoals] = useState<GoalsResponse["goals"]>([])
   const [goalIdea, setGoalIdea] = useState("")
+  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null)
   const [questionIndex, setQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<string[]>([])
+
+  const createProjectMutation = useMutation({
+    mutationFn: (payload: CreateProjectRequest) =>
+      apiFetch<Project>("/projects", {
+        method: "POST",
+        body: JSON.stringify(payload),
+    }),
+    onMutate: () => setStep("projectThinking"),
+    onSuccess: (result) => {
+      onProjectCreated(result)
+    },
+    onError: () => setStep("goals"),
+  })
 
   const goalsMutation = useMutation({
     mutationFn: (payload: GoalsRequest) =>
       apiFetch<GoalsResponse>("/projects/goals", {
         method: "POST",
         body: JSON.stringify(payload),
-      }),
+    }),
     onMutate: () => setStep("goalThinking"),
     onSuccess: (result) => {
       setGoals(result.goals)
+      setSelectedGoal(result.goals[0] ?? null)
       setStep("goals")
     },
     onError: () => setStep("clarify"),
@@ -152,6 +174,25 @@ export default function IntakeFlow() {
     })
   }
 
+  function goBackFromGoals() {
+    if (clarity?.clarifying_questions.length) {
+      setQuestionIndex(clarity.clarifying_questions.length - 1)
+      setStep("clarify")
+      return
+    }
+    setStep("idea")
+  }
+
+  function createProject() {
+    if (!selectedGoal) return
+    createProjectMutation.mutate({
+      category: category.trim(),
+      description: description.trim(),
+      idea: goalIdea || idea.trim(),
+      goal: selectedGoal.title,
+    })
+  }
+
   return (
     <main className="idea-shell">
       <TopNav />
@@ -230,6 +271,14 @@ export default function IntakeFlow() {
           />
         )}
 
+        {step === "projectThinking" && (
+          <ThinkingPanel
+            eyebrow="Creating project"
+            title="Building your plan..."
+            message="Saving the project and asking the backend to generate steps, milestones, and timeline details."
+          />
+        )}
+
         {step === "clarify" && currentQuestion && (
           <form
             className="form-panel idea-panel question-panel"
@@ -285,7 +334,12 @@ export default function IntakeFlow() {
             </p>
             <div className="goal-list">
               {goals.map((goal) => (
-                <button type="button" className="goal-option" key={goal.title}>
+                <button
+                  type="button"
+                  className={`goal-option ${selectedGoal?.title === goal.title ? "selected" : ""}`}
+                  key={goal.title}
+                  onClick={() => setSelectedGoal(goal)}
+                >
                   <span>{goal.title}</span>
                   <small>{goal.description}</small>
                   <strong>{goal.complete_in} days</strong>
@@ -293,15 +347,23 @@ export default function IntakeFlow() {
               ))}
             </div>
             <div className="panel-actions">
-              <button className="secondary-button" onClick={() => setStep("idea")}>
-                Back to idea
+              <button className="secondary-button" onClick={goBackFromGoals}>
+                Back
               </button>
-              <button className="primary-button" onClick={() => setStep("category")}>
-                Start another idea
+              <button
+                className="primary-button"
+                onClick={createProject}
+                disabled={!selectedGoal || createProjectMutation.isPending}
+              >
+                Create project
               </button>
             </div>
+            {createProjectMutation.isError && (
+              <p className="error-text">The backend did not create the project. Check that it is running on port 8000.</p>
+            )}
           </div>
         )}
+
       </section>
     </main>
   )

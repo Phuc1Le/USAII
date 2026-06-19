@@ -55,8 +55,8 @@ def assess_clarity(body: ClarityRequest):
 
 @app.post("/agent/clarity/answers", response_model=ClarityResponse)
 def reassess_clarity(body: ClarityAnswersRequest):
-    answers_text = " ".join(pair.answer for pair in body.answers)
-    enriched_idea = f"{body.idea} {answers_text}".strip()
+    qa_lines = "\n".join(f"{pair.question} {pair.answer}" for pair in body.answers)
+    enriched_idea = f"{body.idea}\n{qa_lines}"
     response = json_call(
         build_clarity_answers_prompt(body, enriched_idea),
         ClarityResponse,

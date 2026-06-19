@@ -7,3 +7,4 @@ export type IntakeStep =
   | "clarify"
   | "goalThinking"
   | "goals"
+  | "projectThinking"
