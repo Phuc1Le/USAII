@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
+import confetti from "canvas-confetti"
 import type { Project, Step, Task } from "../../../api"
 import { apiFetch } from "../../../api/client"
+import ChatPanel from "./ChatPanel"
 import TopNav from "./TopNav"
 import "../IntakeFlow.css"
 import "../../project/Dashboard.css"
@@ -12,9 +14,10 @@ type Props = {
   onBackHome: () => void
 }
 
-type LockAlert = { stepTitle: string; depNames: string[] } | null
+type LockAlert = { stepId: string; stepTitle: string; depNames: string[] } | null
 type TaskMap = Record<string, "todo" | "done">
 type StepStatusMap = Record<string, Step["status"]>
+type MilestoneStatusMap = Record<string, boolean>
 
 const CARDS_PER_PAGE = 3
 
@@ -32,6 +35,14 @@ function buildStepStatusMap(steps: Step[]): StepStatusMap {
   const map: StepStatusMap = {}
   for (const step of steps) {
     map[step.id] = step.status
+  }
+  return map
+}
+
+function buildMilestoneStatusMap(project: Project | null): MilestoneStatusMap {
+  const map: MilestoneStatusMap = {}
+  for (const milestone of project?.milestones ?? []) {
+    map[milestone.id] = Boolean(milestone.achieved_at)
   }
   return map
 }
@@ -73,7 +84,12 @@ export default function ProjectDashboard({
   const [taskMap, setTaskMap] = useState<TaskMap>(() =>
     buildTaskMap(propSelected?.steps ?? []),
   )
+  const [milestoneAchieved, setMilestoneAchieved] = useState<MilestoneStatusMap>(() =>
+    buildMilestoneStatusMap(propSelected),
+  )
+  const [proceededSteps, setProceededSteps] = useState<Set<string>>(() => new Set())
   const [lockAlert, setLockAlert] = useState<LockAlert>(null)
+  const [chatStepId, setChatStepId] = useState<string | null>(null)
 
   // Fetch all projects from backend — also refreshes completedIds from real DB state
   useEffect(() => {
@@ -93,10 +109,7 @@ export default function ProjectDashboard({
     const step = selectedProject?.steps.find((s) => s.id === expandedId)
     if (!step) return
     if (stepTasks[expandedId] !== undefined) return
-    if (step.tasks.length > 0) {
-      setStepTasks((prev) => ({ ...prev, [expandedId]: step.tasks }))
-      return
-    }
+    if (step.tasks.length > 0) return
     apiFetch<Task[]>(`/steps/${expandedId}/tasks`)
       .then((tasks) => {
         setStepTasks((prev) => ({ ...prev, [expandedId]: tasks }))
@@ -107,7 +120,7 @@ export default function ProjectDashboard({
         })
       })
       .catch(() => setStepTasks((prev) => ({ ...prev, [expandedId]: [] })))
-  }, [expandedId])
+  }, [expandedId, selectedProject?.steps, stepTasks])
 
   // ── Helpers ──
 
@@ -116,11 +129,38 @@ export default function ProjectDashboard({
     return idx === -1 ? project.title : `Project ${idx + 1}`
   }
 
+  function celebrateProjectComplete() {
+    confetti({
+      particleCount: 80,
+      spread: 70,
+      origin: { y: 0.65 },
+    })
+    confetti({
+      particleCount: 45,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0, y: 0.75 },
+    })
+    confetti({
+      particleCount: 45,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1, y: 0.75 },
+    })
+  }
+
   function toggleProjectComplete(p: Project) {
     const nowComplete = !completedIds.has(p.id)
+    if (nowComplete) {
+      celebrateProjectComplete()
+    }
     setCompletedIds((prev) => {
       const next = new Set(prev)
-      nowComplete ? next.add(p.id) : next.delete(p.id)
+      if (nowComplete) {
+        next.add(p.id)
+      } else {
+        next.delete(p.id)
+      }
       return next
     })
     apiFetch(`/projects/${p.id}`, {
@@ -129,7 +169,11 @@ export default function ProjectDashboard({
     }).catch(() =>
       setCompletedIds((prev) => {
         const next = new Set(prev)
-        nowComplete ? next.delete(p.id) : next.add(p.id)
+        if (nowComplete) {
+          next.delete(p.id)
+        } else {
+          next.add(p.id)
+        }
         return next
       }),
     )
@@ -140,6 +184,7 @@ export default function ProjectDashboard({
   }
 
   function isStepLocked(step: Step): boolean {
+    if (proceededSteps.has(step.id)) return false
     return step.depends_on.some((depId) => {
       const dep = steps.find((s) => s.id === depId)
       return dep && stepStatus(dep) !== "done"
@@ -175,6 +220,17 @@ export default function ProjectDashboard({
     )
   }
 
+  function toggleMilestone(milestoneId: string) {
+    const nextAchieved = !milestoneAchieved[milestoneId]
+    setMilestoneAchieved((prev) => ({ ...prev, [milestoneId]: nextAchieved }))
+    apiFetch(`/milestones/${milestoneId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ achieved: nextAchieved }),
+    }).catch(() =>
+      setMilestoneAchieved((prev) => ({ ...prev, [milestoneId]: !nextAchieved })),
+    )
+  }
+
   function markStepDone(step: Step) {
     setStepStatuses((prev) => ({ ...prev, [step.id]: "done" }))
     apiFetch(`/steps/${step.id}`, {
@@ -183,6 +239,13 @@ export default function ProjectDashboard({
     }).catch(() =>
       setStepStatuses((prev) => ({ ...prev, [step.id]: step.status })),
     )
+  }
+
+  function proceedAnyway() {
+    if (!lockAlert) return
+    setProceededSteps((prev) => new Set(prev).add(lockAlert.stepId))
+    setExpandedId(lockAlert.stepId)
+    setLockAlert(null)
   }
 
   // ── Derived ──
@@ -267,12 +330,20 @@ export default function ProjectDashboard({
                 const pct = visibleSteps.length === 1
                   ? "50%"
                   : `${(i / (visibleSteps.length - 1)) * 100}%`
-                const hasMilestone = milestones.some((m) => m.step_id === step.id)
+                const milestone = milestones.find((m) => m.step_id === step.id)
+                const milestoneDone = milestone ? milestoneAchieved[milestone.id] : false
                 return (
                   <div key={step.id} className="db-timeline-marker" style={{ left: pct }}>
                     <span className="db-timeline-label">{getDayLabel(steps, offset + i)}</span>
-                    {hasMilestone
-                      ? <div className="db-timeline-diamond" />
+                    {milestone
+                      ? (
+                          <button
+                            className={`db-timeline-diamond${milestoneDone ? " achieved" : ""}`}
+                            title={milestoneDone ? "Achieved" : "Mark achieved"}
+                            aria-label={`${milestoneDone ? "Unmark" : "Mark"} milestone achieved: ${milestone.title}`}
+                            onClick={() => toggleMilestone(milestone.id)}
+                          />
+                        )
                       : <div className="db-timeline-dot" />}
                   </div>
                 )
@@ -292,7 +363,7 @@ export default function ProjectDashboard({
                     onClick={() => {
                       // Bug fix: locked card shows alert instead of expanding
                       if (locked) {
-                        setLockAlert({ stepTitle: step.title, depNames: getBlockingDepNames(step) })
+                        setLockAlert({ stepId: step.id, stepTitle: step.title, depNames: getBlockingDepNames(step) })
                         return
                       }
                       setExpandedId((prev) => (prev === step.id ? null : step.id))
@@ -307,7 +378,7 @@ export default function ProjectDashboard({
                             title="Dependencies not complete"
                             onClick={(e) => {
                               e.stopPropagation()
-                              setLockAlert({ stepTitle: step.title, depNames: getBlockingDepNames(step) })
+                              setLockAlert({ stepId: step.id, stepTitle: step.title, depNames: getBlockingDepNames(step) })
                             }}
                           >🔒</button>
                         ) : (
@@ -350,7 +421,12 @@ export default function ProjectDashboard({
                   // Bug fix: onClick only on the checkbox, not the whole row
                   <div key={task.id} className={`db-task-item${done ? " task-done" : ""}`}>
                     <div className="db-avatar">A</div>
-                    <span className="db-task-title">{task.title}</span>
+                    <div className="db-task-copy">
+                      <span className="db-task-title">{task.title}</span>
+                      {task.detail.trim() && (
+                        <p className="db-task-detail">{task.detail}</p>
+                      )}
+                    </div>
                     <button
                       className={`db-checkbox${done ? " checked" : ""}`}
                       onClick={() => toggleTask(task.id)}
@@ -370,13 +446,25 @@ export default function ProjectDashboard({
                 >
                   Mark step as complete
                 </button>
-                <button className="secondary-button">Apply to chat</button>
+                <button className="secondary-button" onClick={() => setChatStepId(expandedStep.id)}>
+                  Apply to chat
+                </button>
               </div>
             )}
             {!(expandedStep && allTasksDone(expandedStep) && !isStepMarkedDone(expandedStep)) && (
               <div className="db-task-actions">
-                <button className="primary-button">Apply to chat</button>
+                <button className="primary-button" onClick={() => setChatStepId(expandedStep.id)}>
+                  Apply to chat
+                </button>
               </div>
+            )}
+            {chatStepId === expandedStep.id && (
+              <ChatPanel
+                projectId={project.id}
+                step={expandedStep}
+                tasks={expandedTasks}
+                onClose={() => setChatStepId(null)}
+              />
             )}
           </div>
         )}
@@ -394,7 +482,7 @@ export default function ProjectDashboard({
             </p>
             <div className="db-modal-actions">
               <button className="secondary-button" onClick={() => setLockAlert(null)}>Cancel</button>
-              <button className="primary-button" onClick={() => setLockAlert(null)}>Proceed anyway</button>
+              <button className="primary-button" onClick={proceedAnyway}>Proceed anyway</button>
             </div>
           </div>
         </div>

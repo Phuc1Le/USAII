@@ -33,12 +33,12 @@ def build_clarity_prompt(body: ClarityRequest) -> str:
         Evaluate how clear the project idea is for execution.
         Score clarity from 0.0 to 1.0 using the idea, category, and description.
         Focus on whether the goal, target users, value, and delivery scope are specific enough to plan realistically.
-        If the idea is vague, ask up to 3 concise clarifying questions that remove the biggest uncertainties.
-        If the idea is already clear, ask for none.
+        If clarity_score is below 0.7, you MUST include 1 to 3 concise clarifying questions that remove the biggest uncertainties.
+        If clarity_score is 0.7 or above, return an empty clarifying_questions array.
         The JSON must contain exactly:
         - clarity_score: float between 0.0 and 1.0
         - needs_clarification: boolean
-        - clarifying_questions: array of short, useful questions
+        - clarifying_questions: array of short, useful questions (required and non-empty when clarity_score < 0.7)
         """,
         body.model_dump(mode="json"),
     )
@@ -53,11 +53,12 @@ def build_clarity_answers_prompt(
         Re-score the idea after the user answered the clarifying questions.
         Use the original idea, the answers, and the enriched idea to assess whether the project is now specific enough to execute.
         Update the clarity score and decide whether any remaining ambiguity still blocks planning.
-        If the answers remove the uncertainty, return an empty clarifying_questions array.
+        If clarity_score is still below 0.7, you MUST include 1 to 3 follow-up clarifying questions targeting the remaining gaps.
+        If clarity_score is 0.7 or above, return an empty clarifying_questions array.
         The JSON must contain exactly:
         - clarity_score: float between 0.0 and 1.0
         - needs_clarification: boolean
-        - clarifying_questions: array of short, high-value follow-up questions only if needed
+        - clarifying_questions: array of short, high-value follow-up questions (required and non-empty when clarity_score < 0.7)
         """,
         {
             "idea": body.idea,
@@ -116,8 +117,26 @@ def build_tasks_prompt(body: GenerateTasksRequest) -> str:
     )
 
 
+def _build_plain_prompt(task: str, payload: dict) -> str:
+    return dedent(
+        f"""
+        You are the Zero to One planning assistant.
+        {task}
+
+        Rules:
+        - Respond in clear, concise plain text. Use markdown for structure (bold, lists) when helpful.
+        - Do not wrap your response in JSON or code fences.
+        - Do not invent facts that are not supported by the input payload.
+        - If a value is uncertain, ask a short clarifying question rather than guessing.
+
+        Input payload:
+        {json.dumps(payload, indent=2, sort_keys=True)}
+        """
+    ).strip()
+
+
 def build_chat_prompt(body: ChatRequest) -> str:
-    return _build_prompt(
+    return _build_plain_prompt(
         """
         You are helping the user continue work on their project.
         Use the supplied project context, current step, chat history, and the latest user message to respond helpfully.

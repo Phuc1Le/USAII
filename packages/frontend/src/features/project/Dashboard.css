@@ -232,6 +232,14 @@
   transform: rotate(45deg);
   border: 2px solid var(--cream);
   box-shadow: 0 0 0 1.5px var(--rose);
+  cursor: pointer;
+  padding: 0;
+  transition: background 120ms, box-shadow 120ms;
+}
+
+.db-timeline-diamond.achieved {
+  background: var(--green);
+  box-shadow: 0 0 0 1.5px var(--green);
 }
 
 /* ── Step cards grid ── */
@@ -373,9 +381,23 @@
 }
 
 .db-task-title {
-  flex: 1;
   font-size: 15px;
   color: var(--ink);
+}
+
+.db-task-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.db-task-detail {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
 }
 
 .db-checkbox {
@@ -403,6 +425,149 @@
   margin-top: 12px;
   display: flex;
   justify-content: center;
+}
+
+/* ── Inline chat ── */
+.db-chat-panel {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 251, 237, 0.72);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.db-chat-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.db-chat-eyebrow {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.db-chat-title {
+  margin: 0;
+  font-size: 17px;
+  color: var(--ink);
+}
+
+.db-chat-messages {
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.db-chat-message {
+  max-width: 82%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: white;
+}
+
+.db-chat-message.user {
+  align-self: flex-end;
+  background: #ede9fe;
+  border-color: #ddd6fe;
+}
+
+.db-chat-message.assistant {
+  align-self: flex-start;
+}
+
+.db-chat-role {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.db-chat-message p,
+.db-chat-muted,
+.db-chat-error {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.db-chat-markdown {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.db-chat-markdown p {
+  margin: 0 0 6px;
+  white-space: pre-wrap;
+}
+
+.db-chat-markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.db-chat-markdown ul,
+.db-chat-markdown ol {
+  margin: 4px 0 6px;
+  padding-left: 20px;
+}
+
+.db-chat-markdown li {
+  margin-bottom: 2px;
+}
+
+.db-chat-markdown strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.db-chat-markdown code {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  background: rgba(0,0,0,0.06);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.db-chat-muted {
+  color: var(--muted);
+}
+
+.db-chat-error {
+  color: #b91c1c;
+}
+
+.db-chat-form {
+  display: flex;
+  gap: 10px;
+}
+
+.db-chat-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 10px 14px;
+  font: inherit;
+  color: var(--ink);
+  background: white;
+}
+
+.db-chat-input:focus {
+  outline: none;
+  border-color: #7c3aed;
 }
 
 /* ── Lock modal ── */

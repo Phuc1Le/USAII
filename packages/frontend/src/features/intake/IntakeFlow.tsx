@@ -72,6 +72,12 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
     onMutate: () => setStep("thinking"),
     onSuccess: (result) => {
       setClarity(result)
+      if (result.needs_clarification && result.clarifying_questions.length > 0) {
+        setQuestionIndex(0)
+        setAnswers([])
+        setStep("clarify")
+        return
+      }
       requestGoalSuggestions(result)
     },
     onError: () => setStep("clarify"),

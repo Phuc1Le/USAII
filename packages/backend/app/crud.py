@@ -1,5 +1,6 @@
 # packages/backend/app/crud.py
 
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app import models
 from app import schemas
@@ -111,6 +112,21 @@ def create_milestones_from_plan(
 
     db.commit()
     return db_milestones
+
+
+def update_milestone(
+    db: Session,
+    milestone_id: int,
+    body: schemas.UpdateMilestoneRequest,
+) -> models.Milestone | None:
+    milestone = db.query(models.Milestone).filter(models.Milestone.id == milestone_id).first()
+    if not milestone:
+        return None
+    if body.achieved is not None:
+        milestone.achieved_at = datetime.now(timezone.utc) if body.achieved else None
+    db.commit()
+    db.refresh(milestone)
+    return milestone
 
 
 # ── Tasks ─────────────────────────────────────────────────────────
