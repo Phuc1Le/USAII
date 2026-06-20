@@ -312,6 +312,55 @@
                 }
             }
         },
+        "/api/v1/milestones/{milestone_id}": {
+            "patch": {
+                "summary": "Update Milestone",
+                "operationId": "update_milestone_api_v1_milestones__milestone_id__patch",
+                "parameters": [
+                    {
+                        "name": "milestone_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Milestone Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateMilestoneRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Milestone"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/steps/{step_id}/tasks": {
             "get": {
                 "summary": "Get Tasks",
@@ -649,6 +698,10 @@
                     "goal": {
                         "type": "string",
                         "title": "Goal"
+                    },
+                    "complete_in": {
+                        "type": "integer",
+                        "title": "Complete In"
                     }
                 },
                 "type": "object",
@@ -656,7 +709,8 @@
                     "category",
                     "description",
                     "idea",
-                    "goal"
+                    "goal",
+                    "complete_in"
                 ],
                 "title": "CreateProjectRequest"
             },
@@ -1043,6 +1097,23 @@
                     "order_index"
                 ],
                 "title": "Task"
+            },
+            "UpdateMilestoneRequest": {
+                "properties": {
+                    "achieved": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Achieved"
+                    }
+                },
+                "type": "object",
+                "title": "UpdateMilestoneRequest"
             },
             "UpdateProjectRequest": {
                 "properties": {

@@ -92,6 +92,7 @@ class CreateProjectRequest(BaseModel):
     description: str
     idea: str
     goal: str
+    complete_in: int  # days — passed through to PlanRequest
 
 # ── Projects (update) ────────────────────────────────────────────
 
@@ -154,8 +155,11 @@ class PlanResponse(BaseModel):
     milestones: list[MilestonePlan]
 
 class PlanRequest(BaseModel):
+    category: str | None = None
+    description: str | None = None
     idea: str
     goal: str
+    complete_in: int
 
 class SubTask(BaseModel):
     title: str
