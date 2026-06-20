@@ -21,14 +21,14 @@ app = FastAPI(title="Zero to One API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    # allow_origins=["http://localhost:5173"],
-    allow_origins=["http://localhost:5174"],
+    allow_origins=["http://localhost:5173"],
+    # allow_origins=["http://localhost:5174"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 AGENT_URL = os.environ.get("AGENT_URL", "http://localhost:8001")
-USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT", "true").lower() == "true"
+USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT")
 
 # ── Intake ────────────────────────────────────────────────────────
 
@@ -63,7 +63,7 @@ def create_project(body: schemas.CreateProjectRequest, db: Session = Depends(get
 
     # 2. ask the agent for a plan
     plan = agent_client.generate_plan(
-        schemas.PlanRequest(idea=body.idea, goal=body.goal)
+        schemas.PlanRequest(idea=body.idea, goal=body.goal, complete_in=body.complete_in)
     )
 
     # 3. save steps + milestones

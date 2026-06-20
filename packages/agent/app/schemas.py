@@ -53,6 +53,7 @@ class PlanRequest(BaseModel):
     description: str | None = None
     idea: str
     goal: str
+    complete_in: int
 
 class StepPlan(BaseModel):
     title: str

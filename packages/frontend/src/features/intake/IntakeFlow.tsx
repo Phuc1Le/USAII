@@ -196,7 +196,8 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
       description: description.trim(),
       idea: goalIdea || idea.trim(),
       goal: selectedGoal.title,
-    })
+      complete_in: selectedGoal.complete_in,
+    } as any)
   }
 
   return (
