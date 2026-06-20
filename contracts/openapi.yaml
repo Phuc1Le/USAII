@@ -120,6 +120,26 @@
             }
         },
         "/api/v1/projects": {
+            "get": {
+                "summary": "List Projects",
+                "operationId": "list_projects_api_v1_projects_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/Project"
+                                    },
+                                    "type": "array",
+                                    "title": "Response List Projects Api V1 Projects Get"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
                 "summary": "Create Project",
                 "operationId": "create_project_api_v1_projects_post",
@@ -158,6 +178,53 @@
             }
         },
         "/api/v1/projects/{project_id}": {
+            "patch": {
+                "summary": "Update Project",
+                "operationId": "update_project_api_v1_projects__project_id__patch",
+                "parameters": [
+                    {
+                        "name": "project_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Project Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateProjectRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Project"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             "get": {
                 "summary": "Get Project",
                 "operationId": "get_project_api_v1_projects__project_id__get",
@@ -179,6 +246,55 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/Project"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/steps/{step_id}": {
+            "patch": {
+                "summary": "Update Step",
+                "operationId": "update_step_api_v1_steps__step_id__patch",
+                "parameters": [
+                    {
+                        "name": "step_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Step Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateStepRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Step"
                                 }
                             }
                         }
@@ -927,6 +1043,51 @@
                     "order_index"
                 ],
                 "title": "Task"
+            },
+            "UpdateProjectRequest": {
+                "properties": {
+                    "status": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "enum": [
+                                    "active",
+                                    "completed"
+                                ]
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Status"
+                    }
+                },
+                "type": "object",
+                "title": "UpdateProjectRequest"
+            },
+            "UpdateStepRequest": {
+                "properties": {
+                    "status": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "enum": [
+                                    "todo",
+                                    "in_progress",
+                                    "blocked",
+                                    "deferred",
+                                    "done"
+                                ]
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Status"
+                    }
+                },
+                "type": "object",
+                "title": "UpdateStepRequest"
             },
             "UpdateTaskRequest": {
                 "properties": {

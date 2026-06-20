@@ -3,17 +3,15 @@ import type { Project } from "./api"
 import IntakeFlow from "./features/intake/IntakeFlow"
 import ProjectDashboard from "./features/intake/components/ProjectDashboard"
 
-const LAST_PROJECT_KEY = "zero-to-one:last-project"
+const PROJECTS_KEY = "zero-to-one:projects"
+const SELECTED_KEY = "zero-to-one:last-project"
 
-function readStoredProject() {
-  const storedProject = sessionStorage.getItem(LAST_PROJECT_KEY)
-  if (!storedProject) return null
-
+function readStored<T>(key: string, fallback: T): T {
   try {
-    return JSON.parse(storedProject) as Project
+    const raw = sessionStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as T) : fallback
   } catch {
-    sessionStorage.removeItem(LAST_PROJECT_KEY)
-    return null
+    return fallback
   }
 }
 
@@ -24,30 +22,51 @@ function navigate(path: string) {
 
 export default function App() {
   const [path, setPath] = useState(() => window.location.pathname)
-  const [project, setProject] = useState<Project | null>(() => readStoredProject())
+  const [projects, setProjects] = useState<Project[]>(() =>
+    readStored<Project[]>(PROJECTS_KEY, []),
+  )
+  const [selectedProject, setSelectedProject] = useState<Project | null>(() =>
+    readStored<Project | null>(SELECTED_KEY, null),
+  )
 
   useEffect(() => {
     function syncPath() {
       setPath(window.location.pathname)
     }
-
     window.addEventListener("popstate", syncPath)
     if (window.location.pathname === "/") {
       window.history.replaceState({}, "", "/home")
       syncPath()
     }
-
     return () => window.removeEventListener("popstate", syncPath)
   }, [])
 
-  function handleProjectCreated(createdProject: Project) {
-    setProject(createdProject)
-    sessionStorage.setItem(LAST_PROJECT_KEY, JSON.stringify(createdProject))
+  function handleProjectCreated(created: Project) {
+    setProjects((prev) => {
+      const next = [...prev.filter((p) => p.id !== created.id), created]
+      sessionStorage.setItem(PROJECTS_KEY, JSON.stringify(next))
+      return next
+    })
+    setSelectedProject(created)
+    sessionStorage.setItem(SELECTED_KEY, JSON.stringify(created))
     navigate("/dashboard")
   }
 
+  function handleSelectProject(p: Project) {
+    setSelectedProject(p)
+    sessionStorage.setItem(SELECTED_KEY, JSON.stringify(p))
+  }
+
   if (path === "/dashboard") {
-    return <ProjectDashboard project={project} onBackHome={() => navigate("/home")} />
+    return (
+      <ProjectDashboard
+        key={selectedProject?.id ?? "none"}
+        projects={projects}
+        selectedProject={selectedProject}
+        onSelectProject={handleSelectProject}
+        onBackHome={() => navigate("/home")}
+      />
+    )
   }
 
   return <IntakeFlow onProjectCreated={handleProjectCreated} />

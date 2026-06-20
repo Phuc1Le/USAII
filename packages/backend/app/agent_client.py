@@ -18,7 +18,7 @@ def assess_clarity(body: schemas.IntakeRequest) -> schemas.ClarityResult:
                 schemas.ClarifyingQuestion(question="What is the one thing it must do?"),
             ]
         )
-    res = httpx.post(f"{AGENT_URL}/agent/clarity", json=body.model_dump())
+    res = httpx.post(f"{AGENT_URL}/agent/clarity", json=body.model_dump(), timeout=60.0)
     res.raise_for_status()
     return schemas.ClarityResult(**res.json())
 
@@ -32,7 +32,7 @@ def reassess_clarity(body: schemas.ClarityAnswersRequest) -> schemas.ClarityResu
             clarifying_questions=[],
             enriched_idea=f"{body.idea} {answers_text}"   # ← combined
         )
-    res = httpx.post(f"{AGENT_URL}/agent/clarity/answers", json=body.model_dump())
+    res = httpx.post(f"{AGENT_URL}/agent/clarity/answers", json=body.model_dump(), timeout=60.0)
     res.raise_for_status()
     return schemas.ClarityResult(**res.json())
 
@@ -44,7 +44,7 @@ def suggest_goals(body: schemas.GoalsRequest) -> schemas.GoalsResponse:
             schemas.Goal(title="MVP", description="Core flow only, with enough polish for early users.", complete_in=21),
             schemas.Goal(title="Production", description="A deployable version with reliability and handoff polish.", complete_in=45),
         ])
-    res = httpx.post(f"{AGENT_URL}/agent/goals", json=body.model_dump())
+    res = httpx.post(f"{AGENT_URL}/agent/goals", json=body.model_dump(), timeout=60.0)
     res.raise_for_status()
     return schemas.GoalsResponse(**res.json())
 
@@ -85,7 +85,7 @@ def generate_plan(body: schemas.PlanRequest) -> schemas.PlanResponse:
                 )
             ]
         )
-    res = httpx.post(f"{AGENT_URL}/agent/plan", json=body.model_dump())
+    res = httpx.post(f"{AGENT_URL}/agent/plan", json=body.model_dump(), timeout=60.0)
     res.raise_for_status()
     return schemas.PlanResponse(**res.json())
 
@@ -100,6 +100,6 @@ def generate_tasks(step: schemas.StepPlan, project_idea: str) -> list[schemas.Su
         "step_title": step.title,
         "step_description": step.description,
         "project_idea": project_idea,
-    })
+    }, timeout=60.0)
     res.raise_for_status()
     return [schemas.SubTask(**t) for t in res.json()["tasks"]]

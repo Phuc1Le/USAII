@@ -18,6 +18,7 @@ from app.schemas import (
     ClarityAnswersRequest,
     ClarityRequest,
     ClarityResponse,
+    ClarifyingQuestion,
     GenerateTasksRequest,
     GenerateTasksResponse,
     GoalsRequest,
@@ -35,11 +36,16 @@ def _normalize_clarity(
     enriched_idea: str | None,
 ) -> ClarityResponse:
     clarity_score = min(1.0, max(0.0, response.clarity_score))
+    needs = clarity_score < CLARITY_THRESHOLD
+    questions = response.clarifying_questions[:3]
+    # If the score is low but the model returned no questions, add a fallback
+    if needs and not questions:
+        questions = [ClarifyingQuestion(question="Could you describe your target users and the core problem you're solving?")]
     return response.model_copy(
         update={
             "clarity_score": clarity_score,
-            "needs_clarification": clarity_score < CLARITY_THRESHOLD,
-            "clarifying_questions": response.clarifying_questions[:3],
+            "needs_clarification": needs,
+            "clarifying_questions": questions,
             "enriched_idea": enriched_idea,
         }
     )
@@ -82,5 +88,6 @@ def chat(body: ChatRequest):
         for chunk in stream_text(build_chat_prompt(body)):
             payload = json.dumps({"role": "assistant", "content": chunk})
             yield f"data: {payload}\n\n"
+        yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

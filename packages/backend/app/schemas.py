@@ -93,6 +93,21 @@ class CreateProjectRequest(BaseModel):
     idea: str
     goal: str
 
+# ── Projects (update) ────────────────────────────────────────────
+
+class UpdateProjectRequest(BaseModel):
+    status: Literal["active", "completed"] | None = None
+
+# ── Steps (update) ───────────────────────────────────────────────
+
+class UpdateStepRequest(BaseModel):
+    status: Literal["todo", "in_progress", "blocked", "deferred", "done"] | None = None
+
+# ── Milestones (update) ──────────────────────────────────────────
+
+class UpdateMilestoneRequest(BaseModel):
+    achieved: bool | None = None
+
 # ── Tasks (update) ───────────────────────────────────────────────
 
 class UpdateTaskRequest(BaseModel):

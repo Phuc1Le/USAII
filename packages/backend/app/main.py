@@ -1,6 +1,7 @@
 # packages/backend/app/main.py
 
 from contextlib import asynccontextmanager
+import json
 import os
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,7 +21,8 @@ app = FastAPI(title="Zero to One API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    # allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5174"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -49,6 +51,11 @@ def get_goals(body: schemas.GoalsRequest):
 
 # ── Projects ──────────────────────────────────────────────────────
 
+@app.get("/api/v1/projects", response_model=list[schemas.Project])
+def list_projects(db: Session = Depends(get_db)):
+    return [serializers.serialize_project(p) for p in crud.get_all_projects(db)]
+
+
 @app.post("/api/v1/projects", response_model=schemas.Project, status_code=201)
 def create_project(body: schemas.CreateProjectRequest, db: Session = Depends(get_db)):
     # 1. save the project row
@@ -68,6 +75,14 @@ def create_project(body: schemas.CreateProjectRequest, db: Session = Depends(get
     return serializers.serialize_project(db_project)
 
 
+@app.patch("/api/v1/projects/{project_id}", response_model=schemas.Project)
+def update_project(project_id: int, body: schemas.UpdateProjectRequest, db: Session = Depends(get_db)):
+    project = crud.update_project(db, project_id, body)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return serializers.serialize_project(project)
+
+
 @app.get("/api/v1/projects/{project_id}", response_model=schemas.Project)
 def get_project(project_id: int, db: Session = Depends(get_db)):
     db_project = crud.get_project(db, project_id)
@@ -77,6 +92,23 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
 
 
 # ── Steps / Tasks ─────────────────────────────────────────────────
+
+@app.patch("/api/v1/steps/{step_id}", response_model=schemas.Step)
+def update_step(step_id: int, body: schemas.UpdateStepRequest, db: Session = Depends(get_db)):
+    from app.models import Step as StepModel
+    step = crud.update_step(db, step_id, body)
+    if not step:
+        raise HTTPException(status_code=404, detail="Step not found")
+    return serializers.serialize_step(step)
+
+
+@app.patch("/api/v1/milestones/{milestone_id}", response_model=schemas.Milestone)
+def update_milestone(milestone_id: int, body: schemas.UpdateMilestoneRequest, db: Session = Depends(get_db)):
+    milestone = crud.update_milestone(db, milestone_id, body)
+    if not milestone:
+        raise HTTPException(status_code=404, detail="Milestone not found")
+    return serializers.serialize_milestone(milestone)
+
 
 @app.get("/api/v1/steps/{step_id}/tasks", response_model=list[schemas.Task])
 def get_tasks(step_id: int, db: Session = Depends(get_db)):
@@ -136,8 +168,11 @@ def send_message(
         def mock_stream():
             words = ["I", " understand", " your", " request", ".",
                      " Let", " me", " help", " you", " move", " forward", "."]
+            full_response = ""
             for word in words:
-                yield f"data: {word}\n\n"
+                full_response += word
+                yield f"data: {json.dumps({'content': word})}\n\n"
+            crud.save_message(db, session_id, "assistant", full_response)
             yield "data: [DONE]\n\n"
         return StreamingResponse(mock_stream(), media_type="text/event-stream")
 
@@ -165,13 +200,20 @@ def send_message(
     def real_stream():
         full_response = ""
         with httpx.stream("POST", f"{AGENT_URL}/agent/chat", json=chat_request) as r:
+            r.raise_for_status()
             for line in r.iter_lines():
                 if line.startswith("data: "):
-                    token = line[6:]
-                    if token == "[DONE]":
+                    payload = line[6:]
+                    if payload == "[DONE]":
                         break
+                    try:
+                        token = json.loads(payload).get("content", "")
+                    except json.JSONDecodeError:
+                        token = payload
+                    if not token:
+                        continue
                     full_response += token
-                    yield f"data: {token}\n\n"
+                    yield f"data: {json.dumps({'content': token})}\n\n"
 
         # save the complete assistant response after streaming finishes
         crud.save_message(db, session_id, "assistant", full_response)
