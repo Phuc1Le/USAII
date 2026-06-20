@@ -28,7 +28,7 @@ app.add_middleware(
 )
 
 AGENT_URL = os.environ.get("AGENT_URL", "http://localhost:8001")
-USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT", "true").lower() == "true"
+USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT")
 
 # ── Intake ────────────────────────────────────────────────────────
 

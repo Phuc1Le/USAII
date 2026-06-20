@@ -151,7 +151,7 @@ def build_clarity_answers_prompt(
 def build_goals_prompt(body: GoalsRequest) -> str:
     return _build_prompt(
         """
-        Suggest 3 to 5 realistic goals for this project.
+        Suggest 3 realistic goals for this project.
         Each goal should be scoped by a practical delivery timeline, not by vague ambition.
         Use time estimates that are easy to understand and executable, such as a few days, 1 week, 2 weeks, or 1 month.
         Tailor the goals to the category: for technology, emphasize architecture validation, core feature delivery, reliability, and deployment readiness; for social media, emphasize audience growth, engagement quality, content pipeline setup, and community management; for business, emphasize customer traction, revenue logic, operations readiness, and market validation; for education, emphasize learning impact, curriculum fit, accessibility, and adoption; for health, emphasize safety, trust, compliance, and workflow usefulness; for finance, emphasize trust, risk control, compliance, and user confidence; for creative arts, emphasize audience resonance, production quality, and distribution; for community, emphasize participation, moderation, retention, and inclusion; for productivity, emphasize efficiency, adoption, and workflow fit; for sustainability, emphasize measurable environmental benefit, efficiency, and long-term resilience.

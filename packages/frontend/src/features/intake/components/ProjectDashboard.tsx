@@ -3,7 +3,6 @@ import confetti from "canvas-confetti"
 import type { Project, Step, Task } from "../../../api"
 import { apiFetch } from "../../../api/client"
 import ChatPanel from "./ChatPanel"
-import TopNav from "./TopNav"
 import "../IntakeFlow.css"
 import "../../project/Dashboard.css"
 
@@ -207,7 +206,28 @@ export default function ProjectDashboard({
     return stepStatus(step) === "done"
   }
 
+  function isStepComplete(step: Step): boolean {
+    return allTasksDone(step) || isStepMarkedDone(step)
+  }
+
+  function isMilestoneAchieved(milestoneId: string, step: Step): boolean {
+    return milestoneAchieved[milestoneId] || isStepComplete(step)
+  }
+
   // Bug fix: only the checkbox toggles the task, not the whole row
+  function syncMilestoneForStep(step: Step) {
+    const milestone = milestones.find((m) => m.step_id === step.id)
+    if (!milestone || milestoneAchieved[milestone.id] || !isStepComplete(step)) return
+
+    setMilestoneAchieved((prev) => ({ ...prev, [milestone.id]: true }))
+    apiFetch(`/milestones/${milestone.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ achieved: true }),
+    }).catch(() =>
+      setMilestoneAchieved((prev) => ({ ...prev, [milestone.id]: false })),
+    )
+  }
+
   function toggleTask(taskId: string) {
     const newStatus: "todo" | "done" = taskMap[taskId] === "done" ? "todo" : "done"
     setTaskMap((prev) => ({ ...prev, [taskId]: newStatus }))
@@ -218,6 +238,19 @@ export default function ProjectDashboard({
       // revert on failure
       setTaskMap((prev) => ({ ...prev, [taskId]: newStatus === "done" ? "todo" : "done" })),
     )
+
+    const step = steps.find((s) =>
+      (stepTasks[s.id] ?? s.tasks).some((task) => task.id === taskId),
+    )
+    if (step) {
+      const tasks = stepTasks[step.id] ?? step.tasks
+      const allDone = tasks.length > 0 && tasks.every((t) =>
+        t.id === taskId ? newStatus === "done" : taskMap[t.id] === "done",
+      )
+      if (allDone || isStepMarkedDone(step)) {
+        syncMilestoneForStep(step)
+      }
+    }
   }
 
   function toggleMilestone(milestoneId: string) {
@@ -233,6 +266,16 @@ export default function ProjectDashboard({
 
   function markStepDone(step: Step) {
     setStepStatuses((prev) => ({ ...prev, [step.id]: "done" }))
+    const milestone = selectedProject?.milestones?.find((m) => m.step_id === step.id)
+    if (milestone && !milestoneAchieved[milestone.id]) {
+      setMilestoneAchieved((prev) => ({ ...prev, [milestone.id]: true }))
+      apiFetch(`/milestones/${milestone.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ achieved: true }),
+      }).catch(() =>
+        setMilestoneAchieved((prev) => ({ ...prev, [milestone.id]: false })),
+      )
+    }
     apiFetch(`/steps/${step.id}`, {
       method: "PATCH",
       body: JSON.stringify({ status: "done" }),
@@ -263,7 +306,6 @@ export default function ProjectDashboard({
   if (!project) {
     return (
       <main className="idea-shell">
-        <TopNav />
         <section className="hero-stage">
           <div className="form-panel" style={{ textAlign: "center", maxWidth: 560 }}>
             <span className="eyebrow">Dashboard</span>
@@ -331,7 +373,7 @@ export default function ProjectDashboard({
                   ? "50%"
                   : `${(i / (visibleSteps.length - 1)) * 100}%`
                 const milestone = milestones.find((m) => m.step_id === step.id)
-                const milestoneDone = milestone ? milestoneAchieved[milestone.id] : false
+                const milestoneDone = milestone ? isMilestoneAchieved(milestone.id, step) : false
                 return (
                   <div key={step.id} className="db-timeline-marker" style={{ left: pct }}>
                     <span className="db-timeline-label">{getDayLabel(steps, offset + i)}</span>
@@ -354,7 +396,7 @@ export default function ProjectDashboard({
             <div className="db-cards">
               {visibleSteps.map((step) => {
                 const locked = isStepLocked(step)
-                const done = allTasksDone(step) || isStepMarkedDone(step)
+                const done = isStepComplete(step)
                 const active = step.id === expandedId
                 return (
                   <div
@@ -415,12 +457,12 @@ export default function ProjectDashboard({
                 {stepTasks[expandedStep.id] === undefined ? "Loading tasks…" : "No tasks yet for this step."}
               </p>
             ) : (
-              expandedTasks.map((task) => {
+              expandedTasks.map((task, index) => {
                 const done = taskMap[task.id] === "done"
                 return (
                   // Bug fix: onClick only on the checkbox, not the whole row
                   <div key={task.id} className={`db-task-item${done ? " task-done" : ""}`}>
-                    <div className="db-avatar">A</div>
+                    <div className="db-task-number" aria-hidden="true">{index + 1}</div>
                     <div className="db-task-copy">
                       <span className="db-task-title">{task.title}</span>
                       {task.detail.trim() && (

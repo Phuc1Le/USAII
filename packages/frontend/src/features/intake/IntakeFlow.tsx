@@ -13,8 +13,8 @@ import type {
   Project,
 } from "../../api"
 import ChoicePanel from "./components/ChoicePanel"
+import Starfield from "./components/Starfield"
 import ThinkingPanel from "./components/ThinkingPanel"
-import TopNav from "./components/TopNav"
 import { categories, descriptionOptions, fallbackDescriptions } from "./intakeOptions"
 import type { IntakeStep } from "./types"
 import "./IntakeFlow.css"
@@ -199,13 +199,15 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
     })
   }
 
+  const clarityPercent = Math.round((clarity?.clarity_score ?? 0) * 100)
+
   return (
     <main className="idea-shell">
-      <TopNav />
+      <Starfield />
       <section className="hero-stage">
         {step === "landing" && (
           <div className="landing-copy">
-            <h1>Welcome to iDEA</h1>
+            <h1>Welcome to Stella</h1>
             <p>Let's get started</p>
             <button className="primary-button" onClick={() => setStep("category")}>
               Dive in
@@ -293,9 +295,9 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
               goToNextQuestion()
             }}
           >
-            <div>
+            <div className="question-copy">
               <span className="eyebrow">{progressLabel}</span>
-              <h1>{currentQuestion.question}</h1>
+              <h2 className="question-title">{currentQuestion.question}</h2>
             </div>
             <textarea
               value={answers[questionIndex] ?? ""}
@@ -334,10 +336,15 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
           <div className="form-panel result-panel goals-panel">
             <span className="eyebrow">Goal suggestions</span>
             <h1>Choose where this idea should land.</h1>
-            <p>
-              Clarity score: {Math.round((clarity?.clarity_score ?? 0) * 100)}%.
-              Goals are based on: {goalIdea}
-            </p>
+            <div className="goals-meta">
+              <span className="clarity-badge">Clarity {clarityPercent}%</span>
+              {goalIdea && (
+                <details className="idea-details">
+                  <summary>View enriched idea</summary>
+                  <p className="idea-details-body">{goalIdea}</p>
+                </details>
+              )}
+            </div>
             <div className="goal-list">
               {goals.map((goal) => (
                 <button
