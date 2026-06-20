@@ -8,8 +8,9 @@ from app import schemas
 # ── Projects ─────────────────────────────────────────────────────
 
 def create_project(db: Session, body: schemas.CreateProjectRequest) -> models.Project:
+    count = db.query(models.Project).count()
     project = models.Project(
-        title=body.idea[:60],       # first 60 chars of idea as title
+        title=f"Project {count + 1}",
         category=body.category,
         description=body.description,
         idea=body.idea,
@@ -24,6 +25,21 @@ def create_project(db: Session, body: schemas.CreateProjectRequest) -> models.Pr
 
 def get_project(db: Session, project_id: int) -> models.Project | None:
     return db.query(models.Project).filter(models.Project.id == project_id).first()
+
+
+def get_all_projects(db: Session) -> list[models.Project]:
+    return db.query(models.Project).order_by(models.Project.id).all()
+
+
+def update_project(db: Session, project_id: int, body: schemas.UpdateProjectRequest) -> models.Project | None:
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        return None
+    if body.status is not None:
+        project.status = body.status
+    db.commit()
+    db.refresh(project)
+    return project
 
 
 # ── Steps ─────────────────────────────────────────────────────────
@@ -119,6 +135,17 @@ def create_tasks_for_step(
 
     db.commit()
     return db_tasks
+
+
+def update_step(db: Session, step_id: int, body: schemas.UpdateStepRequest) -> models.Step | None:
+    step = db.query(models.Step).filter(models.Step.id == step_id).first()
+    if not step:
+        return None
+    if body.status is not None:
+        step.status = body.status
+    db.commit()
+    db.refresh(step)
+    return step
 
 
 def get_tasks_for_step(db: Session, step_id: int) -> list[models.Task]:

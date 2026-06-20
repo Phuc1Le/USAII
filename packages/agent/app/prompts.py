@@ -9,8 +9,6 @@ from app.schemas import (
     GoalsRequest,
     PlanRequest,
 )
-
-
 def _build_prompt(task: str, payload: dict) -> str:
     return dedent(
         f"""
