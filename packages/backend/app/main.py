@@ -11,6 +11,9 @@ import httpx
 
 from app.models import init_db, get_db
 from app import schemas, crud, serializers, agent_client
+from dotenv import load_dotenv
+
+load_dotenv()
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -28,10 +31,10 @@ app.add_middleware(
 )
 
 AGENT_URL = os.environ.get("AGENT_URL", "http://localhost:8001")
-USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT")
-CHAT_SUMMARY_TRIGGER = int(os.environ.get("CHAT_SUMMARY_TRIGGER", "20"))
-CHAT_SUMMARY_KEEP = int(os.environ.get("CHAT_SUMMARY_KEEP", "10"))
-CHAT_SUMMARY_RE_EVERY = int(os.environ.get("CHAT_SUMMARY_RE_EVERY", "5"))
+USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT", "").lower() == "true"
+CHAT_SUMMARY_TRIGGER = int(os.environ.get("CHAT_SUMMARY_TRIGGER"))
+CHAT_SUMMARY_KEEP = int(os.environ.get("CHAT_SUMMARY_KEEP"))
+CHAT_SUMMARY_RE_EVERY = int(os.environ.get("CHAT_SUMMARY_RE_EVERY"))
 
 # ── Intake ────────────────────────────────────────────────────────
 
@@ -270,6 +273,10 @@ def _maybe_summarize(db: Session, session_id: int) -> None:
     # if we already have a summary, only send the new old messages
     start_idx = session.summary_message_count or 0
     old_messages = session.messages[start_idx:to_summarize_count]
+
+    # always include the first message — it carries the project context and initial task setup
+    if start_idx > 0 and len(session.messages) > 0:
+        old_messages.insert(0, session.messages[0])
 
     try:
         new_summary = agent_client.summarize_chat(
