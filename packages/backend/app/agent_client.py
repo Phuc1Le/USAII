@@ -5,7 +5,7 @@ import httpx
 from app import schemas
 
 AGENT_URL = os.environ.get("AGENT_URL", "http://localhost:8001")
-USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT")
+USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT", "").lower() == "true"
 
 
 def assess_clarity(body: schemas.IntakeRequest) -> schemas.ClarityResult:

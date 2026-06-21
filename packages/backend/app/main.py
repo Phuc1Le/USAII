@@ -11,6 +11,9 @@ import httpx
 
 from app.models import init_db, get_db
 from app import schemas, crud, serializers, agent_client
+from dotenv import load_dotenv
+
+load_dotenv()
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -28,11 +31,11 @@ app.add_middleware(
 )
 
 AGENT_URL = os.environ.get("AGENT_URL", "http://localhost:8001")
-USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT")
-CHAT_SUMMARY_TRIGGER = int(os.environ.get("CHAT_SUMMARY_TRIGGER", "20"))
-CHAT_SUMMARY_KEEP = int(os.environ.get("CHAT_SUMMARY_KEEP", "10"))
-CHAT_SUMMARY_RE_EVERY = int(os.environ.get("CHAT_SUMMARY_RE_EVERY", "5"))
-
+USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT", "").lower() == "true"
+CHAT_SUMMARY_TRIGGER = int(os.environ.get("CHAT_SUMMARY_TRIGGER"))
+CHAT_SUMMARY_KEEP = int(os.environ.get("CHAT_SUMMARY_KEEP"))
+CHAT_SUMMARY_RE_EVERY = int(os.environ.get("CHAT_SUMMARY_RE_EVERY"))
+print(USE_MOCK_AGENT)
 # ── Intake ────────────────────────────────────────────────────────
 
 @app.post("/api/v1/projects/intake", response_model=schemas.ClarityResult)
@@ -174,6 +177,7 @@ def send_message(
     session = crud.get_session(db, session_id)
 
     if USE_MOCK_AGENT:
+        print("hi")
         def mock_stream():
             words = ["I", " understand", " your", " request", ".",
                      " Let", " me", " help", " you", " move", " forward", "."]
