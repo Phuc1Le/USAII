@@ -131,6 +131,7 @@ class ChatSession(BaseModel):
     project_id: str
     scope_type: Literal["step", "project"]
     scope_step_id: str | None
+    summary: str | None = None
     messages: list[ChatMessage]
 
 class SendMessageRequest(BaseModel):

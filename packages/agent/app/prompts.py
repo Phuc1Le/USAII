@@ -222,15 +222,42 @@ def _build_plain_prompt(task: str, payload: dict) -> str:
 
 
 def build_chat_prompt(body: ChatRequest) -> str:
+    payload = body.model_dump(mode="json")
+    if body.summary:
+        payload["summary"] = body.summary
     return _build_plain_prompt(
         """
         You are helping the user continue work on their project.
         Use the supplied project context, current step, chat history, and the latest user message to respond helpfully.
         Keep the answer practical, concise, and grounded in the plan.
         Prefer specific next actions over generic advice.
+        If a conversation summary is provided, use it to maintain continuity with earlier parts of the conversation.
         Tailor recommendations to the project domain when possible: for technology, focus on architecture, implementation, validation, and rollout; for social media, focus on audience growth, content rhythm, engagement, and community management; for business, focus on market fit, customer acquisition, revenue logic, and operations; for education, focus on instruction quality, accessibility, progression, and assessment; for health, focus on safety, privacy, trust, and workflow fit; for finance, focus on trust, compliance, risk control, and transparency; for creative arts, focus on ideation, iteration, production quality, and distribution; for community, focus on participation, moderation, trust, and retention; for productivity, focus on efficiency, friction reduction, workflow design, and adoption; for sustainability, focus on measurable impact, resource efficiency, and long-term resilience.
         If the user is asking something that cannot be answered safely from the context, ask a short clarifying question instead of guessing.
         Do not invent facts that are not present in the context.
         """,
-        body.model_dump(mode="json"),
+        payload,
     )
+
+
+def build_summary_prompt(
+    messages: list,
+    existing_summary: str | None = None,
+) -> str:
+    messages_text = "\n".join(
+        f"[{m['role']}]: {m['content']}" for m in messages
+    )
+    existing_block = ""
+    if existing_summary:
+        existing_block = f"\nPrevious summary that must be incorporated:\n{existing_summary}\n"
+    return dedent(
+        f"""
+        You are the Zero to One planning assistant.
+        Summarize the following portion of a project chat conversation into a concise, factual paragraph (2-4 sentences).
+        Preserve key decisions, plan changes, important clarifications, and any action items the user committed to.
+        Do not add interpretation or commentary — just distill the facts.
+        {existing_block}
+        Messages to summarize:
+        {messages_text}
+        """
+    ).strip()

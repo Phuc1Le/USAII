@@ -103,3 +103,17 @@ def generate_tasks(step: schemas.StepPlan, project_idea: str) -> list[schemas.Su
     }, timeout=60.0)
     res.raise_for_status()
     return [schemas.SubTask(**t) for t in res.json()["tasks"]]
+
+
+def summarize_chat(
+    messages: list[dict],
+    existing_summary: str | None = None,
+) -> str:
+    if USE_MOCK_AGENT:
+        return "The user is working on their project plan. They have clarified requirements and are progressing through implementation steps."
+    res = httpx.post(f"{AGENT_URL}/agent/chat/summary", json={
+        "messages": messages,
+        "existing_summary": existing_summary,
+    }, timeout=60.0)
+    res.raise_for_status()
+    return res.json()["summary"]

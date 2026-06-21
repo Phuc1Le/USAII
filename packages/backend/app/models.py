@@ -97,6 +97,8 @@ class ChatSession(Base):
     # scope_type ∈ {step, project}
     scope_type = Column(String, nullable=False, default="project")
     scope_step_id = Column(Integer, ForeignKey("steps.id"), nullable=True)
+    summary = Column(Text, nullable=True)
+    summary_message_count = Column(Integer, nullable=True)
 
     project = relationship("Project", back_populates="chat_sessions")
     messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan")

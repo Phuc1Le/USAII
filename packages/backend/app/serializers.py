@@ -58,6 +58,7 @@ def serialize_session(
         project_id=str(s.project_id),
         scope_type=s.scope_type,
         scope_step_id=str(s.scope_step_id) if s.scope_step_id else None,
+        summary=s.summary,
         messages=[
             schemas.ChatMessage(role=m.role, content=m.content)
             for m in s.messages

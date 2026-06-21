@@ -29,6 +29,9 @@ app.add_middleware(
 
 AGENT_URL = os.environ.get("AGENT_URL", "http://localhost:8001")
 USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT")
+CHAT_SUMMARY_TRIGGER = int(os.environ.get("CHAT_SUMMARY_TRIGGER", "20"))
+CHAT_SUMMARY_KEEP = int(os.environ.get("CHAT_SUMMARY_KEEP", "10"))
+CHAT_SUMMARY_RE_EVERY = int(os.environ.get("CHAT_SUMMARY_RE_EVERY", "5"))
 
 # ── Intake ────────────────────────────────────────────────────────
 
@@ -164,6 +167,12 @@ def send_message(
     # save user message
     crud.save_message(db, session_id, "user", body.content)
 
+    # rolling summarization check
+    _maybe_summarize(db, session_id)
+
+    # reload session to pick up any fresh summary
+    session = crud.get_session(db, session_id)
+
     if USE_MOCK_AGENT:
         def mock_stream():
             words = ["I", " understand", " your", " request", ".",
@@ -197,6 +206,9 @@ def send_message(
         "new_message": body.content,
     }
 
+    if session.summary:
+        chat_request["summary"] = session.summary
+
     def real_stream():
         full_response = ""
         with httpx.stream("POST", f"{AGENT_URL}/agent/chat", json=chat_request) as r:
@@ -227,3 +239,44 @@ def send_message(
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(real_stream(), media_type="text/event-stream")
+
+
+def _maybe_summarize(db: Session, session_id: int) -> None:
+    session = crud.get_session(db, session_id)
+    if not session:
+        return
+
+    msg_count = len(session.messages)
+
+    if msg_count < CHAT_SUMMARY_TRIGGER:
+        return
+
+    # decide if re-summarization is due
+    need_summary = False
+    if session.summary is None:
+        need_summary = True
+    elif (
+        session.summary_message_count is not None
+        and msg_count - session.summary_message_count >= CHAT_SUMMARY_KEEP + CHAT_SUMMARY_RE_EVERY
+    ):
+        need_summary = True
+
+    if not need_summary:
+        return
+
+    # messages to summarize: all except the last KEEP
+    to_summarize_count = msg_count - CHAT_SUMMARY_KEEP
+
+    # if we already have a summary, only send the new old messages
+    start_idx = session.summary_message_count or 0
+    old_messages = session.messages[start_idx:to_summarize_count]
+
+    try:
+        new_summary = agent_client.summarize_chat(
+            messages=[{"role": m.role, "content": m.content} for m in old_messages],
+            existing_summary=session.summary,
+        )
+        crud.update_session_summary(db, session_id, new_summary, to_summarize_count)
+    except Exception:
+        # summarization failure is non-fatal — proceed without it
+        pass

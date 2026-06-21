@@ -92,6 +92,7 @@ class ChatRequest(BaseModel):
     project_context: ProjectContext
     history: list[ChatMessage]
     new_message: str
+    summary: str | None = None
 
 # chat response is SSE stream — no response model needed
 class SubTask(BaseModel):
@@ -105,3 +106,12 @@ class GenerateTasksRequest(BaseModel):
 
 class GenerateTasksResponse(BaseModel):
     tasks: list[SubTask]
+
+
+class SummaryRequest(BaseModel):
+    messages: list[ChatMessage]
+    existing_summary: str | None = None
+
+
+class SummaryResponse(BaseModel):
+    summary: str

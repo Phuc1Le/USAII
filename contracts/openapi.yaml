@@ -592,6 +592,17 @@
                         ],
                         "title": "Scope Step Id"
                     },
+                    "summary": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Summary"
+                    },
                     "messages": {
                         "items": {
                             "$ref": "#/components/schemas/ChatMessage"

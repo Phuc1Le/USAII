@@ -254,3 +254,21 @@ def get_decisions(db: Session, project_id: int) -> list[models.Decision]:
     return db.query(models.Decision).filter(
         models.Decision.project_id == project_id
     ).all()
+
+
+def update_session_summary(
+    db: Session,
+    session_id: int,
+    summary: str,
+    message_count: int,
+) -> models.ChatSession | None:
+    session = db.query(models.ChatSession).filter(
+        models.ChatSession.id == session_id
+    ).first()
+    if not session:
+        return None
+    session.summary = summary
+    session.summary_message_count = message_count
+    db.commit()
+    db.refresh(session)
+    return session

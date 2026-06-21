@@ -11,6 +11,7 @@ from app.prompts import (
     build_clarity_prompt,
     build_goals_prompt,
     build_plan_prompt,
+    build_summary_prompt,
     build_tasks_prompt,
 )
 from app.schemas import (
@@ -25,6 +26,8 @@ from app.schemas import (
     GoalsResponse,
     PlanRequest,
     PlanResponse,
+    SummaryRequest,
+    SummaryResponse,
 )
 
 app = FastAPI(title="Zero to One Agent API", version="0.1.0")
@@ -91,3 +94,12 @@ def chat(body: ChatRequest):
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+@app.post("/agent/chat/summary", response_model=SummaryResponse)
+def summarize_chat(body: SummaryRequest):
+    messages = [m.model_dump(mode="json") for m in body.messages]
+    return json_call(
+        build_summary_prompt(messages, body.existing_summary),
+        SummaryResponse,
+    )
