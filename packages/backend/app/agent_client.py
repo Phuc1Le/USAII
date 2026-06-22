@@ -3,7 +3,9 @@
 import os
 import httpx
 from app import schemas
+from dotenv import load_dotenv
 
+load_dotenv()
 AGENT_URL = os.environ.get("AGENT_URL", "http://localhost:8001")
 USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT", "").lower() == "true"
 
