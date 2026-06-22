@@ -613,12 +613,17 @@
                     "goal": {
                         "type": "string",
                         "title": "Goal"
+                    },
+                    "complete_in": {
+                        "type": "integer",
+                        "title": "Complete In"
                     }
                 },
                 "type": "object",
                 "required": [
                     "idea",
-                    "goal"
+                    "goal",
+                    "complete_in"
                 ],
                 "title": "PlanRequest"
             },
