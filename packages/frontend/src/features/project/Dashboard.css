@@ -551,6 +551,18 @@
   color: var(--muted);
 }
 
+.db-chat-decision-badge {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(41, 95, 78, 0.9);
+  background: rgba(41, 95, 78, 0.1);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
 .db-chat-error {
   color: #b91c1c;
 }

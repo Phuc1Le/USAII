@@ -77,19 +77,38 @@ class ChatMessage(BaseModel):
     role: Literal["user", "assistant"]
     content: str
 
+class StepContext(BaseModel):
+    title: str
+    description: str
+    status: str
+    intended_start: str | None
+    intended_end: str | None
+
+class SubTaskContext(BaseModel):
+    title: str
+    detail: str
+    status: str
+
+class FocusedStepContext(StepContext):
+    tasks: list[SubTaskContext]
+
 class ProjectContext(BaseModel):
-    idea: str          # "An app that helps people go from idea to launch"
-    goal: str          # "MVP"
-    steps: list[str]   # ["Define requirements", "Build API", "Build frontend", ...]
-                       # titles only — keeps the prompt short
+    idea: str            # "An app that helps people go from idea to launch"
+    goal: str             # "MVP"
+    steps: list[StepContext]   # full plan, for overall awareness regardless of scope
     decisions: list[str]  # ["Chose FastAPI over Flask", "Using SQLite for demo", ...]
                           # the decisions table from the DB, as plain text
+
+class PriorStepSummary(BaseModel):
+    title: str
+    summary: str
 
 class ChatRequest(BaseModel):
     session_id: str
     scope_type: Literal["step", "project"]
-    scope_step_title: str | None
+    focused_step: FocusedStepContext | None = None
     project_context: ProjectContext
+    prior_steps: list[PriorStepSummary] = []
     history: list[ChatMessage]
     new_message: str
     summary: str | None = None

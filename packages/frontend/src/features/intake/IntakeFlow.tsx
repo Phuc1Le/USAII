@@ -34,6 +34,7 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null)
   const [questionIndex, setQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<string[]>([])
+  const [confirmedAnswers, setConfirmedAnswers] = useState<{ question: string; answer: string }[]>([])
 
   const createProjectMutation = useMutation({
     mutationFn: (payload: CreateProjectRequest) =>
@@ -149,12 +150,16 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
 
   function submitClarifyingAnswers() {
     if (!clarity) return
+    const qaPairs = clarity.clarifying_questions.map((question, index) => ({
+      question: question.question,
+      answer: answers[index]?.trim() ?? "",
+    }))
+    // clarity gets overwritten with the re-assessed result in answersMutation's onSuccess,
+    // so snapshot the actually-answered pairs here rather than re-deriving them later
+    setConfirmedAnswers((prev) => [...prev, ...qaPairs])
     answersMutation.mutate({
       idea: idea.trim(),
-      answers: clarity.clarifying_questions.map((question, index) => ({
-        question: question.question,
-        answer: answers[index]?.trim() ?? "",
-      })),
+      answers: qaPairs,
     })
   }
 
@@ -191,13 +196,15 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
 
   function createProject() {
     if (!selectedGoal) return
+    const clarifyingAnswers = confirmedAnswers.filter((qa) => qa.answer)
     createProjectMutation.mutate({
       category: category.trim(),
       description: description.trim(),
       idea: goalIdea || idea.trim(),
       goal: selectedGoal.title,
       complete_in: selectedGoal.complete_in,
-    } as any)
+      clarifying_answers: clarifyingAnswers,
+    })
   }
 
   const clarityPercent = Math.round((clarity?.clarity_score ?? 0) * 100)

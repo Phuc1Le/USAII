@@ -67,6 +67,11 @@ def create_project(body: schemas.CreateProjectRequest, db: Session = Depends(get
     # 1. save the project row
     db_project = crud.create_project(db, body)
 
+    # save any answered clarifying questions as decisions now that the project has an id
+    for qa in body.clarifying_answers:
+        if qa.answer.strip():
+            crud.save_decision(db, db_project.id, f"Q: {qa.question}\nA: {qa.answer.strip()}")
+
     # 2. ask the agent for a plan
     plan = agent_client.generate_plan(
         schemas.PlanRequest(idea=body.idea, goal=body.goal, complete_in=body.complete_in)
@@ -95,6 +100,11 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
     if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
     return serializers.serialize_project(db_project)
+
+
+@app.get("/api/v1/projects/{project_id}/decisions", response_model=list[schemas.Decision])
+def list_decisions(project_id: int, db: Session = Depends(get_db)):
+    return [serializers.serialize_decision(d) for d in crud.get_decisions(db, project_id)]
 
 
 # ── Steps / Tasks ─────────────────────────────────────────────────
@@ -192,16 +202,62 @@ def send_message(
     project = session.project
     decisions = crud.get_decisions(db, project.id)
 
+    def step_context(s) -> dict:
+        return {
+            "title": s.title,
+            "description": s.description or "",
+            "status": s.status,
+            "intended_start": s.intended_start,
+            "intended_end": s.intended_end,
+        }
+
+    focused_step_model = None
+    if session.scope_type == "step" and session.scope_step_id:
+        focused_step_model = next(
+            (s for s in project.steps if s.id == session.scope_step_id), None
+        )
+
+    focused_step = None
+    if focused_step_model:
+        focused_step = {
+            **step_context(focused_step_model),
+            "tasks": [
+                {"title": t.title, "detail": t.detail or "", "status": t.status}
+                for t in focused_step_model.tasks
+            ],
+        }
+
+    prior_steps = []
+    if focused_step_model:
+        sessions_by_step = {
+            s.scope_step_id: s for s in crud.get_step_chat_sessions(db, project.id)
+        }
+        for s in sorted(project.steps, key=lambda x: x.order_index):
+            if s.order_index >= focused_step_model.order_index:
+                continue
+            prior_session = sessions_by_step.get(s.id)
+            if not prior_session:
+                continue
+            if prior_session.summary:
+                content = prior_session.summary
+            elif prior_session.messages:
+                # short conversation, never hit the summarization trigger yet
+                content = " ".join(m.content for m in prior_session.messages)[:800]
+            else:
+                continue
+            prior_steps.append({"title": s.title, "summary": content})
+
     chat_request = {
         "session_id": str(session_id),
         "scope_type": session.scope_type,
-        "scope_step_title": None,   # TODO: look up step title if scope = step
+        "focused_step": focused_step,
         "project_context": {
             "idea": project.idea,
             "goal": project.goal or "",
-            "steps": [s.title for s in project.steps],
+            "steps": [step_context(s) for s in project.steps],
             "decisions": [d.content for d in decisions],
         },
+        "prior_steps": prior_steps,
         "history": [
             {"role": m.role, "content": m.content}
             for m in session.messages[-10:]  # last 10 messages
@@ -212,8 +268,13 @@ def send_message(
     if session.summary:
         chat_request["summary"] = session.summary
 
+    def is_decision_line(text: str) -> bool:
+        return text.strip().startswith("DECISION:")
+
     def real_stream():
-        full_response = ""
+        full_response = ""      # raw model output, including any DECISION lines
+        visible_response = ""   # what the user actually sees / what gets persisted as the message
+        line_buffer = ""
         with httpx.stream("POST", f"{AGENT_URL}/agent/chat", json=chat_request) as r:
             r.raise_for_status()
             for line in r.iter_lines():
@@ -228,16 +289,32 @@ def send_message(
                     if not token:
                         continue
                     full_response += token
-                    yield f"data: {json.dumps({'content': token})}\n\n"
+                    line_buffer += token
+                    # only forward complete lines, so a trailing DECISION line can be withheld
+                    while "\n" in line_buffer:
+                        nl_index = line_buffer.index("\n")
+                        complete_line = line_buffer[:nl_index + 1]
+                        line_buffer = line_buffer[nl_index + 1:]
+                        if not is_decision_line(complete_line):
+                            visible_response += complete_line
+                            yield f"data: {json.dumps({'content': complete_line})}\n\n"
 
-        # save the complete assistant response after streaming finishes
-        crud.save_message(db, session_id, "assistant", full_response)
+            if line_buffer and not is_decision_line(line_buffer):
+                visible_response += line_buffer
+                yield f"data: {json.dumps({'content': line_buffer})}\n\n"
 
-        # check if the response contains a decision to save
-        if "DECISION:" in full_response:
-            for line in full_response.split("\n"):
-                if line.startswith("DECISION:"):
-                    crud.save_decision(db, project.id, line[9:].strip())
+        # persist only what the user saw — DECISION lines are structured data, not chat prose
+        crud.save_message(db, session_id, "assistant", visible_response.strip())
+
+        # extract and save any decisions from the raw response
+        decision_saved = False
+        for line in full_response.split("\n"):
+            if is_decision_line(line):
+                crud.save_decision(db, project.id, line.split("DECISION:", 1)[1].strip())
+                decision_saved = True
+
+        if decision_saved:
+            yield f"data: {json.dumps({'decision': True})}\n\n"
 
         yield "data: [DONE]\n\n"
 

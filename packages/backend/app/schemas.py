@@ -93,6 +93,7 @@ class CreateProjectRequest(BaseModel):
     idea: str
     goal: str
     complete_in: int  # days — passed through to PlanRequest
+    clarifying_answers: list[QAPair] = []  # saved as Decisions once the project exists
 
 # ── Projects (update) ────────────────────────────────────────────
 
@@ -114,6 +115,13 @@ class UpdateMilestoneRequest(BaseModel):
 class UpdateTaskRequest(BaseModel):
     status: Literal["todo", "done"] | None = None
     title: str | None = None
+
+# ── Decisions ────────────────────────────────────────────────────
+
+class Decision(BaseModel):
+    id: str
+    content: str
+    created_at: str   # ISO datetime string
 
 # ── Chat ─────────────────────────────────────────────────────────
 

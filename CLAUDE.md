@@ -1,0 +1,114 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project
+
+Stella ("Zero to One"): turns a raw idea into a structured project plan via an LLM agent, then acts as a
+context-grounded chat partner for the project's lifecycle. Three independent services in `packages/`:
+`backend` (FastAPI + SQLite, port 8000), `agent` (FastAPI + Gemini, port 8001), `frontend` (React 19 +
+Vite, port 5173). The backend never calls Gemini directly — it always proxies through the agent service
+over HTTP (`AGENT_URL`, see `packages/backend/app/agent_client.py`).
+
+## Commands
+
+### Backend (`packages/backend`)
+```bash
+uvicorn app.main:app --reload --port 8000     # run (venv must be active)
+python -m pytest test_db.py -v                # NOTE: test_db.py is a manual DB-inspection script,
+                                               # not real pytest tests (no asserts) — it prints table contents
+```
+
+### Agent (`packages/agent`)
+```bash
+uvicorn app.main:app --reload --port 8001     # run (venv must be active; requires GEMINI_API_KEY unless under pytest)
+python -m pytest test_prompts.py -v           # real unit tests: prompt builders return non-empty strings
+python -m pytest test_prompts.py::test_all_prompt_builders_return_non_empty_strings  # single test
+python test_tools.py [fixture.json]           # integration script, NOT pytest — requires the agent server
+                                               # already running on :8001; hits every /agent/* route live
+                                               # against a fixture from fixtures/ (default idea_clear.json)
+```
+
+### Frontend (`packages/frontend`)
+```bash
+npm run dev       # vite dev server on :5173
+npm run build     # tsc -b && vite build
+npm run lint      # eslint .
+```
+
+Root `.env` (next to README.md) holds `GEMINI_API_KEY` and `AGENT_URL`; each service also loads its own
+local `.env` if present (`load_dotenv()` in both `backend/app/main.py` / `agent_client.py` and
+`agent/app/config.py`).
+
+## Architecture
+
+### Service boundary and why it exists
+The agent service is a thin, stateless wrapper around Gemini: every route builds a prompt
+(`agent/app/prompts.py`), calls `json_call`/`stream_text` (`agent/app/llm.py`), and returns/streams the
+result — it holds no DB connection and no session state. The backend owns all persistence (SQLite via
+SQLAlchemy) and orchestrates multi-step flows by calling the agent and then writing results to the DB.
+`packages/backend/app/agent_client.py` is the single seam between the two: every function there has a
+`USE_MOCK_AGENT` branch that returns a canned response instead of calling the agent over HTTP, which is
+what lets the backend run standalone for frontend development without Gemini access.
+
+### Backend request flow (`packages/backend/app/main.py`)
+- Route handlers stay thin: they call `agent_client` for anything LLM-shaped and `crud` for anything
+  DB-shaped, then serialize with `serializers`.
+- `POST /api/v1/projects` is the key multi-step flow: create the project row → call
+  `agent_client.generate_plan` → persist steps + milestones from the plan → reload and return. If you
+  change plan shape, `schemas.PlanResponse`/`StepPlan`/`MilestonePlan`, `crud.create_steps_from_plan`, and
+  the agent's `PlanResponse` schema all have to move together.
+- Tasks are generated lazily: `GET /api/v1/steps/{id}/tasks` only calls the agent
+  (`agent_client.generate_tasks`) the first time a step has no tasks yet, then persists and reuses them.
+- Chat (`POST /api/v1/chat/sessions/{id}/messages`) streams via SSE end-to-end: frontend → backend →
+  agent, all `data: {...}\n\n` framed, terminated by a literal `data: [DONE]\n\n`. The backend re-parses
+  the agent's own SSE stream token-by-token (see `real_stream()`) to accumulate the full response so it
+  can persist it after the stream ends — the client only ever talks to the backend, never to the agent
+  service directly.
+- Rolling chat summarization (`_maybe_summarize`) runs synchronously before each chat call. It fires once
+  `msg_count >= CHAT_SUMMARY_TRIGGER`, then again every `CHAT_SUMMARY_KEEP + CHAT_SUMMARY_RE_EVERY`
+  messages after that. It always resends the session's first message alongside whatever's new, because
+  that message carries the original project context. Summarization failures are swallowed (`except
+  Exception: pass`) — chat must keep working even if summarization breaks.
+- `DECISION:`-prefixed lines in an assistant response are parsed out of the finished stream and persisted
+  as `Decision` rows — this is the only place decisions get written, and it's a plain string convention
+  from the chat prompt, not a structured field the agent returns.
+
+### Data model (`packages/backend/app/models.py`)
+`Project 1—N Step 1—N Task`, plus `Milestone` (optionally tied to a `Step`), `ChatSession 1—N ChatMessage`,
+`StepDependency` (join table, currently written but not read anywhere in `main.py`), and `Decision`
+(project-scoped free-text log). Several columns are string enums documented only as comments on the model
+(`Project.status`, `Step.status`, `Task.status`, `ChatSession.scope_type`, `ChatMessage.role`) — there is
+no DB-level constraint, so validate against those comments rather than assuming the column accepts
+anything.
+
+### Agent internals (`packages/agent/app`)
+- `main.py` routes are all one-shot: build a prompt from typed request schemas, call Gemini, return a
+  typed response — except `/agent/chat`, which streams token-by-token via `stream_text`.
+- `_normalize_clarity` is applied after every clarity call (`/agent/clarity` and `/agent/clarity/answers`)
+  to clamp `clarity_score` to [0,1], recompute `needs_clarification` from `CLARITY_THRESHOLD`, cap
+  questions at 3, and inject a fallback question if the model claims low clarity but returned none.
+- `config.py` loads env at import time and will raise if `GEMINI_API_KEY` is missing — *unless* `pytest`
+  is in `sys.modules`, which is how `test_prompts.py` can import the app without a real key.
+- Prompt text lives entirely in `prompts.py`; if you change what a route expects back from Gemini, the
+  prompt's instructions and the corresponding Pydantic response schema in `schemas.py` must stay in sync
+  (Gemini is called with `response_schema=` for structured JSON, so drift there causes a 502 from
+  `json_call`, not a silent shape mismatch).
+
+### Frontend (`packages/frontend/src`)
+- No router library: `App.tsx` reads `window.location.pathname` and gates on `"/home"` vs `"/dashboard"`,
+  manipulating history with a hand-rolled `navigate()` (pushState + manual `popstate` dispatch).
+- Client-side project state is persisted to `sessionStorage` (`zero-to-one:projects`,
+  `zero-to-one:last-project`) as the source of truth for "which project(s) exist" and "which is selected"
+  — the backend is not re-queried for the project list on navigation.
+- `features/intake/` is the pre-project-creation flow (category/idea intake → clarify → goals → plan
+  preview); `features/project/` is the post-creation dashboard. `api/client.ts` is the only place that
+  knows the backend's base URL and SSE framing (`streamChat` parses `data: ...\n\n` the same way the
+  backend parses the agent's stream).
+
+## Contracts
+
+`contracts/` is documentation, not enforced/generated code — `openapi.yaml` (backend),
+`agent_api.yaml` (agent), `domain-glossary.md` (shared vocabulary: Project/Plan/Step/Task/Milestone/Focus),
+and `tool-specs.md` (agent tool specs). When changing a route's request/response shape, update the
+matching contract file by hand; nothing checks that they stay in sync with the Pydantic schemas.

@@ -32,6 +32,7 @@ function buildSeedMessage(step: Step, tasks: Task[]): string {
 export default function ChatPanel({ projectId, step, tasks, onClose }: Props) {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [decisionIndices, setDecisionIndices] = useState<Set<number>>(new Set())
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [isStreaming, setIsStreaming] = useState(false)
@@ -68,21 +69,23 @@ export default function ChatPanel({ projectId, step, tasks, onClose }: Props) {
     setError(null)
     setIsStreaming(true)
 
-    if (showUserMessage) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "user", content: trimmed },
-        { role: "assistant", content: "" },
-      ])
-    } else {
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }])
-    }
+    let targetIndex = -1
+    setMessages((prev) => {
+      const next = showUserMessage
+        ? [...prev, { role: "user" as const, content: trimmed }, { role: "assistant" as const, content: "" }]
+        : [...prev, { role: "assistant" as const, content: "" }]
+      targetIndex = next.length - 1
+      return next
+    })
 
     try {
       await streamChat(id, {
         content: trimmed,
         signal: controller.signal,
         onToken: appendAssistantToken,
+        onDecision: () => {
+          setDecisionIndices((prev) => new Set(prev).add(targetIndex))
+        },
       })
     } catch (err) {
       if (!controller.signal.aborted) {
@@ -171,7 +174,14 @@ export default function ChatPanel({ projectId, step, tasks, onClose }: Props) {
               <span className="db-chat-role">{message.role === "user" ? "You" : "Agent"}</span>
               {message.role === "assistant" ? (
                 message.content
-                  ? <div className="db-chat-markdown"><ReactMarkdown>{message.content}</ReactMarkdown></div>
+                  ? (
+                    <>
+                      <div className="db-chat-markdown"><ReactMarkdown>{message.content}</ReactMarkdown></div>
+                      {decisionIndices.has(index) && (
+                        <span className="db-chat-decision-badge">✓ Decision saved</span>
+                      )}
+                    </>
+                  )
                   : isStreaming && index === messages.length - 1
                     ? <p className="db-chat-muted">Thinking...</p>
                     : null

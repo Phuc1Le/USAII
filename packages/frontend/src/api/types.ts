@@ -62,7 +62,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List Projects */
+        get: operations["list_projects_api_v1_projects_get"];
         put?: never;
         /** Create Project */
         post: operations["create_project_api_v1_projects_post"];
@@ -86,7 +87,59 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /** Update Project */
+        patch: operations["update_project_api_v1_projects__project_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Decisions */
+        get: operations["list_decisions_api_v1_projects__project_id__decisions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/steps/{step_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Step */
+        patch: operations["update_step_api_v1_steps__step_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/milestones/{milestone_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Milestone */
+        patch: operations["update_milestone_api_v1_milestones__milestone_id__patch"];
         trace?: never;
     };
     "/api/v1/steps/{step_id}/tasks": {
@@ -184,6 +237,8 @@ export interface components {
             scope_type: "step" | "project";
             /** Scope Step Id */
             scope_step_id: string | null;
+            /** Summary */
+            summary?: string | null;
             /** Messages */
             messages: components["schemas"]["ChatMessage"][];
         };
@@ -197,9 +252,7 @@ export interface components {
             /** Idea */
             idea: string;
             /** Answers */
-            answers: {
-                [key: string]: unknown;
-            }[];
+            answers: components["schemas"]["QAPair"][];
         };
         /** ClarityResult */
         ClarityResult: {
@@ -222,6 +275,22 @@ export interface components {
             idea: string;
             /** Goal */
             goal: string;
+            /** Complete In */
+            complete_in: number;
+            /**
+             * Clarifying Answers
+             * @default []
+             */
+            clarifying_answers: components["schemas"]["QAPair"][];
+        };
+        /** Decision */
+        Decision: {
+            /** Id */
+            id: string;
+            /** Content */
+            content: string;
+            /** Created At */
+            created_at: string;
         };
         /** Goal */
         Goal: {
@@ -307,6 +376,13 @@ export interface components {
             /** Milestones */
             milestones: components["schemas"]["Milestone"][];
         };
+        /** QAPair */
+        QAPair: {
+            /** Question */
+            question: string;
+            /** Answer */
+            answer: string;
+        };
         /** SendMessageRequest */
         SendMessageRequest: {
             /** Content */
@@ -351,6 +427,21 @@ export interface components {
             status: "todo" | "done";
             /** Order Index */
             order_index: number;
+        };
+        /** UpdateMilestoneRequest */
+        UpdateMilestoneRequest: {
+            /** Achieved */
+            achieved?: boolean | null;
+        };
+        /** UpdateProjectRequest */
+        UpdateProjectRequest: {
+            /** Status */
+            status?: ("active" | "completed") | null;
+        };
+        /** UpdateStepRequest */
+        UpdateStepRequest: {
+            /** Status */
+            status?: ("todo" | "in_progress" | "blocked" | "deferred" | "done") | null;
         };
         /** UpdateTaskRequest */
         UpdateTaskRequest: {
@@ -480,6 +571,26 @@ export interface operations {
             };
         };
     };
+    list_projects_api_v1_projects_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"][];
+                };
+            };
+        };
+    };
     create_project_api_v1_projects_post: {
         parameters: {
             query?: never;
@@ -518,7 +629,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                project_id: string;
+                project_id: number;
             };
             cookie?: never;
         };
@@ -544,12 +655,148 @@ export interface operations {
             };
         };
     };
+    update_project_api_v1_projects__project_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProjectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_decisions_api_v1_projects__project_id__decisions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Decision"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_step_api_v1_steps__step_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                step_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateStepRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Step"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_milestone_api_v1_milestones__milestone_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                milestone_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMilestoneRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Milestone"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_tasks_api_v1_steps__step_id__tasks_get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                step_id: string;
+                step_id: number;
             };
             cookie?: never;
         };
@@ -580,7 +827,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                task_id: string;
+                task_id: number;
             };
             cookie?: never;
         };
@@ -648,7 +895,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                session_id: string;
+                session_id: number;
             };
             cookie?: never;
         };

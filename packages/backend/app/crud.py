@@ -256,6 +256,13 @@ def get_decisions(db: Session, project_id: int) -> list[models.Decision]:
     ).all()
 
 
+def get_step_chat_sessions(db: Session, project_id: int) -> list[models.ChatSession]:
+    return db.query(models.ChatSession).filter(
+        models.ChatSession.project_id == project_id,
+        models.ChatSession.scope_type == "step",
+    ).all()
+
+
 def update_session_summary(
     db: Session,
     session_id: int,

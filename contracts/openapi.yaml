@@ -713,6 +713,14 @@
                     "complete_in": {
                         "type": "integer",
                         "title": "Complete In"
+                    },
+                    "clarifying_answers": {
+                        "items": {
+                            "$ref": "#/components/schemas/QAPair"
+                        },
+                        "type": "array",
+                        "title": "Clarifying Answers",
+                        "default": []
                     }
                 },
                 "type": "object",

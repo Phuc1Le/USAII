@@ -4,6 +4,7 @@ type StreamChatOptions = {
   content: string
   signal?: AbortSignal
   onToken: (token: string) => void
+  onDecision?: () => void
 }
 
 export async function apiFetch<T>(
@@ -20,7 +21,7 @@ export async function apiFetch<T>(
 
 export async function streamChat(
   sessionId: string,
-  { content, signal, onToken }: StreamChatOptions,
+  { content, signal, onToken, onDecision }: StreamChatOptions,
 ): Promise<void> {
   const res = await fetch(`${BASE_URL}/chat/sessions/${sessionId}/messages`, {
     method: "POST",
@@ -50,8 +51,9 @@ export async function streamChat(
         if (payload === "[DONE]") return
 
         try {
-          const parsed = JSON.parse(payload) as { content?: string }
+          const parsed = JSON.parse(payload) as { content?: string; decision?: boolean }
           if (parsed.content) onToken(parsed.content)
+          else if (parsed.decision) onDecision?.()
         } catch {
           onToken(payload)
         }

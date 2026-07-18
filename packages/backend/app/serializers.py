@@ -50,6 +50,14 @@ def serialize_project(p: models.Project) -> schemas.Project:
     )
 
 
+def serialize_decision(d: models.Decision) -> schemas.Decision:
+    return schemas.Decision(
+        id=str(d.id),
+        content=d.content,
+        created_at=d.created_at.isoformat(),
+    )
+
+
 def serialize_session(
     s: models.ChatSession,
 ) -> schemas.ChatSession:
