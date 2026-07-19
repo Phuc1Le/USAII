@@ -304,6 +304,7 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
             }}
           >
             <div className="question-copy">
+              <span className="clarity-badge">Clarity {clarityPercent}%</span>
               <span className="eyebrow">{progressLabel}</span>
               <h2 className="question-title">{currentQuestion.question}</h2>
             </div>

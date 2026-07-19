@@ -1,0 +1,36 @@
+services:
+  agent:
+    build:
+      context: ./packages/agent
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8001:8001"
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL}
+      CHAT_HISTORY_LIMIT: ${CHAT_HISTORY_LIMIT}
+      CLARITY_THRESHOLD: ${CLARITY_THRESHOLD}
+      CHAT_SUMMARY_TRIGGER: ${CHAT_SUMMARY_TRIGGER}
+      CHAT_SUMMARY_KEEP: ${CHAT_SUMMARY_KEEP}
+      CHAT_SUMMARY_RE_EVERY: ${CHAT_SUMMARY_RE_EVERY}
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./packages/backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    environment:
+      USE_MOCK_AGENT: ${USE_MOCK_AGENT}
+      AGENT_URL: ${AGENT_URL}
+      CHAT_SUMMARY_TRIGGER: ${CHAT_SUMMARY_TRIGGER}
+      CHAT_SUMMARY_KEEP: ${CHAT_SUMMARY_KEEP}
+      CHAT_SUMMARY_RE_EVERY: ${CHAT_SUMMARY_RE_EVERY}
+    depends_on:
+      - agent
+    restart: unless-stopped

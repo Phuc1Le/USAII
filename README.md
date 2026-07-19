@@ -38,6 +38,30 @@ Stella is a full-stack application split into three independent services:
 ## 🚀 Quick Start
 
 ### 1. Backend Setup (port 8000)
+- Python 3.12+
+- Node.js 18+
+- Docker (optional)
+
+## Running with Docker (recommended)
+
+```bash
+cp .env.example .env
+# edit .env and add your GEMINI_API_KEY
+docker compose up -d --build
+```
+
+- Backend: http://localhost:8000
+- Agent: http://localhost:8001
+
+Stop with:
+
+```bash
+docker compose down
+```
+
+## Manual Installation
+
+### Backend (port 8000)
 
 ```bash
 cd packages/backend

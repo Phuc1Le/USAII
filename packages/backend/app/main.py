@@ -3,6 +3,7 @@
 from contextlib import asynccontextmanager
 import json
 import os
+from pathlib import Path
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -13,6 +14,11 @@ from app.models import init_db, get_db
 from app import schemas, crud, serializers, agent_client
 from dotenv import load_dotenv
 
+try:
+    REPO_ROOT = Path(__file__).resolve().parents[3]
+    load_dotenv(REPO_ROOT / ".env")
+except IndexError:
+    pass
 load_dotenv()
 
 @asynccontextmanager
@@ -24,15 +30,22 @@ app = FastAPI(title="Zero to One API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    # allow_origins=["http://localhost:5174"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600,
 )
 
 AGENT_URL = os.environ.get("AGENT_URL", "http://localhost:8001")
 USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT", "").lower() == "true"
-CHAT_SUMMARY_TRIGGER = int(os.environ.get("CHAT_SUMMARY_TRIGGER", "10"))
+CHAT_SUMMARY_TRIGGER = int(os.environ.get("CHAT_SUMMARY_TRIGGER", "6"))
 CHAT_SUMMARY_KEEP = int(os.environ.get("CHAT_SUMMARY_KEEP", "3"))
 CHAT_SUMMARY_RE_EVERY = int(os.environ.get("CHAT_SUMMARY_RE_EVERY", "2"))
 

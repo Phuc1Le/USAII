@@ -1,10 +1,16 @@
 # packages/backend/app/agent_client.py
 
 import os
+from pathlib import Path
 import httpx
 from app import schemas
 from dotenv import load_dotenv
 
+try:
+    REPO_ROOT = Path(__file__).resolve().parents[3]
+    load_dotenv(REPO_ROOT / ".env")
+except IndexError:
+    pass
 load_dotenv()
 
 AGENT_URL = os.environ.get("AGENT_URL", "http://localhost:8001")
