@@ -6,8 +6,26 @@ Turn a raw idea into a structured, living project plan — with an agent that kn
 
 - Python 3.12+
 - Node.js 18+
+- Docker (optional)
 
-## Installation
+## Running with Docker (recommended)
+
+```bash
+cp .env.example .env
+# edit .env and add your GEMINI_API_KEY
+docker compose up -d --build
+```
+
+- Backend: http://localhost:8000
+- Agent: http://localhost:8001
+
+Stop with:
+
+```bash
+docker compose down
+```
+
+## Manual Installation
 
 ### Backend (port 8000)
 
