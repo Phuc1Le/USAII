@@ -5,8 +5,6 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
-    ports:
-      - "8001:8001"
     environment:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL}
@@ -33,4 +31,14 @@ services:
       CHAT_SUMMARY_RE_EVERY: ${CHAT_SUMMARY_RE_EVERY}
     depends_on:
       - agent
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./packages/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:4173"
+    depends_on:
+      - backend
     restart: unless-stopped
