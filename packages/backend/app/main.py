@@ -3,6 +3,7 @@
 from contextlib import asynccontextmanager
 import json
 import os
+import re
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -281,8 +282,11 @@ def send_message(
     if session.summary:
         chat_request["summary"] = session.summary
 
+    # tolerant to markdown emphasis, bullets, and casing around the "DECISION:" marker
+    decision_re = re.compile(r"^[\s*_>-]*decision\s*:\s*", re.IGNORECASE)
+
     def is_decision_line(text: str) -> bool:
-        return text.strip().startswith("DECISION:")
+        return bool(decision_re.match(text.strip()))
 
     def real_stream():
         full_response = ""      # raw model output, including any DECISION lines
@@ -322,9 +326,12 @@ def send_message(
         # extract and save any decisions from the raw response
         decision_saved = False
         for line in full_response.split("\n"):
-            if is_decision_line(line):
-                crud.save_decision(db, project.id, line.split("DECISION:", 1)[1].strip())
-                decision_saved = True
+            stripped = line.strip()
+            if is_decision_line(stripped):
+                content = decision_re.sub("", stripped).strip()
+                if content:
+                    crud.save_decision(db, project.id, content)
+                    decision_saved = True
 
         if decision_saved:
             yield f"data: {json.dumps({'decision': True})}\n\n"

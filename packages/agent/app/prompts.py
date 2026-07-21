@@ -235,8 +235,8 @@ def build_chat_prompt(body: ChatRequest) -> str:
         Tailor recommendations to the project domain when possible: for technology, focus on architecture, implementation, validation, and rollout; for social media, focus on audience growth, content rhythm, engagement, and community management; for business, focus on market fit, customer acquisition, revenue logic, and operations; for education, focus on instruction quality, accessibility, progression, and assessment; for health, focus on safety, privacy, trust, and workflow fit; for finance, focus on trust, compliance, risk control, and transparency; for creative arts, focus on ideation, iteration, production quality, and distribution; for community, focus on participation, moderation, trust, and retention; for productivity, focus on efficiency, friction reduction, workflow design, and adoption; for sustainability, focus on measurable impact, resource efficiency, and long-term resilience.
         If the user is asking something that cannot be answered safely from the context, ask a short clarifying question instead of guessing.
         Do not invent facts that are not present in the context.
-        If the user makes or confirms a concrete project decision this turn (e.g. choosing a technology, scope, timeline, or approach), end your response with one line in the exact form "DECISION: <concise statement of the decision>".
-        Only include a DECISION line when a real decision was made or confirmed in this message — most turns should not include one.
+        If the user makes or confirms one or more concrete project decisions this turn (e.g. choosing a technology, scope, timeline, or approach), end your response with one line per decision in the exact form "DECISION: <concise statement of the decision>", each decision on its own line.
+        Only include DECISION lines when a real decision was made or confirmed in this message — most turns should not include any.
         """,
         payload,
     )

@@ -34,7 +34,9 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null)
   const [questionIndex, setQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<string[]>([])
-  const [confirmedAnswers, setConfirmedAnswers] = useState<{ question: string; answer: string }[]>([])
+  // keyed by question text so re-answering the same question (e.g. after going back) replaces
+  // the prior entry instead of appending a duplicate
+  const [confirmedAnswers, setConfirmedAnswers] = useState<Map<string, string>>(new Map())
 
   const createProjectMutation = useMutation({
     mutationFn: (payload: CreateProjectRequest) =>
@@ -155,8 +157,14 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
       answer: answers[index]?.trim() ?? "",
     }))
     // clarity gets overwritten with the re-assessed result in answersMutation's onSuccess,
-    // so snapshot the actually-answered pairs here rather than re-deriving them later
-    setConfirmedAnswers((prev) => [...prev, ...qaPairs])
+    // so snapshot the actually-answered pairs here rather than re-deriving them later.
+    // Re-keying on question text means resubmitting the same round (e.g. after going back
+    // from the goals screen) replaces the prior answer instead of duplicating it.
+    setConfirmedAnswers((prev) => {
+      const next = new Map(prev)
+      for (const qa of qaPairs) next.set(qa.question, qa.answer)
+      return next
+    })
     answersMutation.mutate({
       idea: idea.trim(),
       answers: qaPairs,
@@ -196,7 +204,9 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
 
   function createProject() {
     if (!selectedGoal) return
-    const clarifyingAnswers = confirmedAnswers.filter((qa) => qa.answer)
+    const clarifyingAnswers = Array.from(confirmedAnswers, ([question, answer]) => ({ question, answer })).filter(
+      (qa) => qa.answer,
+    )
     createProjectMutation.mutate({
       category: category.trim(),
       description: description.trim(),
