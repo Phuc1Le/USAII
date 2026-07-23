@@ -1,20 +1,8 @@
 # packages/backend/app/agent_client.py
 
-import os
-from pathlib import Path
 import httpx
 from app import schemas
-from dotenv import load_dotenv
-
-try:
-    REPO_ROOT = Path(__file__).resolve().parents[3]
-    load_dotenv(REPO_ROOT / ".env")
-except IndexError:
-    pass
-load_dotenv()
-
-AGENT_URL = os.environ.get("AGENT_URL", "http://localhost:8001")
-USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT", "").lower() == "true"
+from app.config import AGENT_URL, USE_MOCK_AGENT
 
 def assess_clarity(body: schemas.IntakeRequest) -> schemas.ClarityResult:
     if USE_MOCK_AGENT:

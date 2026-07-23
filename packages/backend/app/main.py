@@ -2,25 +2,16 @@
 
 from contextlib import asynccontextmanager
 import json
-import os
 import re
-from pathlib import Path
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 import httpx
 
-from app.models import init_db, get_db
+from app.database import init_db, get_db
+from app.config import AGENT_URL, USE_MOCK_AGENT, CHAT_SUMMARY_TRIGGER, CHAT_SUMMARY_KEEP, CHAT_SUMMARY_RE_EVERY
 from app import schemas, crud, serializers, agent_client
-from dotenv import load_dotenv
-
-try:
-    REPO_ROOT = Path(__file__).resolve().parents[3]
-    load_dotenv(REPO_ROOT / ".env")
-except IndexError:
-    pass
-load_dotenv()
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -43,12 +34,6 @@ app.add_middleware(
     expose_headers=["*"],
     max_age=600,
 )
-
-AGENT_URL = os.environ.get("AGENT_URL", "http://localhost:8001")
-USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT", "").lower() == "true"
-CHAT_SUMMARY_TRIGGER = int(os.environ.get("CHAT_SUMMARY_TRIGGER", "6"))
-CHAT_SUMMARY_KEEP = int(os.environ.get("CHAT_SUMMARY_KEEP", "3"))
-CHAT_SUMMARY_RE_EVERY = int(os.environ.get("CHAT_SUMMARY_RE_EVERY", "2"))
 
 # ── Intake ────────────────────────────────────────────────────────
 
