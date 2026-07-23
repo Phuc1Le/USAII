@@ -34,11 +34,11 @@ services:
     restart: unless-stopped
 
   frontend:
-    build:
+      build:
       context: ./packages/frontend
       dockerfile: Dockerfile
-    ports:
-      - "5173:4173"
-    depends_on:
-      - backend
-    restart: unless-stopped
+      ports:
+        - "5173:4173"
+      depends_on:
+        - backend
+      restart: unless-stopped
