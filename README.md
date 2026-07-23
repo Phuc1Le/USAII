@@ -165,4 +165,4 @@ npm run dev
 
 ### Agent API
 - **Route:** `http://localhost:8001/docs`
-- **File:** [contracts/agent_api.yaml](contracts/agent_api.yaml
+- **File:** [contracts/agent_api.yaml](contracts/agent_api.yaml)
