@@ -25,7 +25,7 @@ Stella is a full-stack application split into three independent services:
 | **Backend API** | 8000 | FastAPI server; handles projects, plans, chat sessions, and task persistence |
 | **Agent Service** | 8001 | Python agent powered by LLMs; handles clarification, planning, and chat responses |
 
-**Data Store:** SQLite (single-file, included in repo)  
+**Data Store:** SQLite (default, zero-config) or PostgreSQL with pgvector  
 **Styling:** CSS with responsive design  
 **Real-time Chat:** Server-Sent Events (SSE) for streaming agent responses
 
@@ -100,14 +100,20 @@ npm install
 
 ### 4. Environment Variables
 
-Create a `.env` file in the **project root** (next to `README.md`) with your Gemini API key:
+Copy the example file and edit:
 
-```env
-GEMINI_API_KEY=your_api_key_here
-AGENT_URL=http://localhost:8001
+```bash
+cp .env.example .env
 ```
 
-Alternatively, copy from `.env.example` if it exists and fill in your key.
+Key variables in the project root `.env`:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `DATABASE_URL` | `sqlite:///./app.db` | Database connection string; switch to `postgresql://...` for PostgreSQL |
+| `GEMINI_API_KEY` | *required* | API key for Gemini LLM |
+| `AGENT_URL` | `http://localhost:8001` | URL for agent service (from backend perspective) |
+| `USE_MOCK_AGENT` | `false` | Use mock responses instead of real agent (for testing/offline dev) |
 
 ## 🔧 Running the Application
 
@@ -301,16 +307,43 @@ See [contracts/domain-glossary.md](contracts/domain-glossary.md) for the full sh
 - Check that Vite is running on port 5173
 - Check browser console for error messages
 
+### Database Management
+
+```bash
+cd packages/backend
+source .venv/bin/activate
+
+# generate a new migration after editing models
+python -m alembic revision --autogenerate -m "description of change"
+
+# apply pending migrations (runs automatically on backend start too)
+python -m alembic upgrade head
+
+# roll back the last migration
+python -m alembic downgrade -1
+```
+
+### Switching to PostgreSQL
+
+1. Create a PostgreSQL database (e.g., `createdb usaii`)
+2. Optionally enable pgvector: `psql -d usaii -c "CREATE EXTENSION vector"`
+3. Update `.env`:
+   ```
+   DATABASE_URL=postgresql://user:pass@host:5432/usaii
+   ```
+4. Restart the backend — Alembic runs the same migrations against PostgreSQL automatically.
+
 ## 📝 Environment Variables Reference
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
+| `DATABASE_URL` | `sqlite:///./app.db` | Database connection string; set to `postgresql://...` for PostgreSQL |
 | `GEMINI_API_KEY` | *required* | API key for Gemini LLM |
 | `AGENT_URL` | `http://localhost:8001` | URL for agent service (from backend perspective) |
 | `USE_MOCK_AGENT` | `false` | Use mock responses instead of real agent (for testing) |
-| `CHAT_SUMMARY_TRIGGER` | `10` | Messages before chat summarization |
-| `CHAT_SUMMARY_KEEP` | `3` | Summaries to retain in memory |
-| `CHAT_SUMMARY_RE_EVERY` | `2` | Re-summarize every N summaries |
+| `CHAT_SUMMARY_TRIGGER` | `6` | Messages before chat summarization |
+| `CHAT_SUMMARY_KEEP` | `3` | Recent messages to keep after summarization |
+| `CHAT_SUMMARY_RE_EVERY` | `2` | Re-summarize every N messages after first summary |
 
 ## 🤝 Contributing
 

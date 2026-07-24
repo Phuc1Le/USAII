@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Stella ("Zero to One"): turns a raw idea into a structured project plan via an LLM agent, then acts as a
 context-grounded chat partner for the project's lifecycle. Three independent services in `packages/`:
-`backend` (FastAPI + SQLite, port 8000), `agent` (FastAPI + Gemini, port 8001), `frontend` (React 19 +
-Vite, port 5173). The backend never calls Gemini directly — it always proxies through the agent service
-over HTTP (`AGENT_URL`, see `packages/backend/app/agent_client.py`).
+`backend` (FastAPI + SQLite/PostgreSQL, port 8000), `agent` (FastAPI + Gemini, port 8001), `frontend`
+(React 19 + Vite, port 5173). The backend never calls Gemini directly — it always proxies through the
+agent service over HTTP (`AGENT_URL`, see `packages/backend/app/agent_client.py`).
 
 ## Commands
 
@@ -18,6 +18,27 @@ uvicorn app.main:app --reload --port 8000     # run (venv must be active)
 python -m pytest test_db.py -v                # NOTE: test_db.py is a manual DB-inspection script,
                                                # not real pytest tests (no asserts) — it prints table contents
 ```
+
+### Database migrations (`packages/backend`)
+```bash
+# generate a new migration after editing models
+python -m alembic revision --autogenerate -m "description of change"
+
+# apply all pending migrations
+python -m alembic upgrade head
+
+# roll back the last migration
+python -m alembic downgrade -1
+
+# show current revision
+python -m alembic current
+
+# see migration history
+python -m alembic history
+```
+Migrations run automatically when the backend starts (`init_db()` calls `command.upgrade("head")`).
+To switch from SQLite to PostgreSQL, set `DATABASE_URL=postgresql://user:pass@host:5432/dbname` in
+`.env` — the same Alembic migrations work on both.
 
 ### Agent (`packages/agent`)
 ```bash
@@ -36,9 +57,12 @@ npm run build     # tsc -b && vite build
 npm run lint      # eslint .
 ```
 
-Root `.env` (next to README.md) holds `GEMINI_API_KEY` and `AGENT_URL`; each service also loads its own
-local `.env` if present (`load_dotenv()` in both `backend/app/main.py` / `agent_client.py` and
-`agent/app/config.py`).
+Root `.env` (next to README.md) holds `GEMINI_API_KEY`, `AGENT_URL`, and `DATABASE_URL`.
+`packages/backend/app/config.py` is the single config module for the backend: it loads both the root `.env`
+and any local `packages/backend/.env` on import, then exports all settings as module-level variables
+(`DATABASE_URL`, `AGENT_URL`, `USE_MOCK_AGENT`, `CHAT_SUMMARY_*`). Both `main.py` and `agent_client.py`
+import from `config` — there is no more scattered `load_dotenv()` or inline `os.environ.get()`.
+The agent has its own `packages/agent/app/config.py` with the same two-tier loading pattern.
 
 ## Architecture
 
@@ -81,6 +105,12 @@ what lets the backend run standalone for frontend development without Gemini acc
 (`Project.status`, `Step.status`, `Task.status`, `ChatSession.scope_type`, `ChatMessage.role`) — there is
 no DB-level constraint, so validate against those comments rather than assuming the column accepts
 anything.
+
+Schema changes are managed via Alembic migrations (not `create_all`). The engine, session factory, and
+`init_db` live in `database.py` (was inline in models.py). On startup `init_db()` calls
+`alembic upgrade head` — no manual migration step is required for deployment. The database URL is
+read from `DATABASE_URL` (defaults to `sqlite:///./app.db`) via `config.py`; SQLite gets
+`check_same_thread=False` automatically.
 
 ### Agent internals (`packages/agent/app`)
 - `main.py` routes are all one-shot: build a prompt from typed request schemas, call Gemini, return a
