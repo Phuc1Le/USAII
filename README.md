@@ -13,7 +13,7 @@ youtube.com/watch?v=KZgev5keaZI&source_ve_path=NzY3NTg&embeds_referring_euri=htt
 - **Plan Generation** — Creates ordered steps with timelines, milestones, and concrete tasks
 - **Focused Chat** — Chat with the agent grounded in your specific project context and plan
 - **Task Management** — Check off tasks, track progress through milestones, and celebrate wins
-- **Project Memory** — Agent retains your project's plan and decisions for consistent, contextual help
+- **Project Memory** — Agent retains your project's plan and decisions for consistent, contextual help.
 
 ## 🏗️ Architecture
 
