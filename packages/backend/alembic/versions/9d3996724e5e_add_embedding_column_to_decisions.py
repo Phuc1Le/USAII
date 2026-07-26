@@ -20,10 +20,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Prerequisite: a superuser must run this first on the database:
-    #   CREATE EXTENSION IF NOT EXISTS vector;
     dialect = op.get_bind().dialect.name
     if dialect == 'postgresql':
+        op.execute("CREATE EXTENSION IF NOT EXISTS vector")
         op.add_column('decisions', sa.Column('embedding', Vector(768), nullable=True))
 
 
