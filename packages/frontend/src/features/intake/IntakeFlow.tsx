@@ -171,6 +171,42 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
     })
   }
 
+  async function skipAssessment() {
+    if (!clarity) return
+    const qaPairs = clarity.clarifying_questions
+      .slice(0, questionIndex)
+      .map((question, index) => ({
+        question: question.question,
+        answer: answers[index]?.trim() ?? "",
+      }))
+    setConfirmedAnswers((prev) => {
+      const next = new Map(prev)
+      for (const qa of qaPairs) if (qa.answer) next.set(qa.question, qa.answer)
+      return next
+    })
+
+    const answered = qaPairs.filter((qa) => qa.answer)
+    if (answered.length === 0) {
+      requestGoalSuggestions()
+      return
+    }
+
+    // Re-assess so enriched_idea picks up the already-answered questions, but unlike the
+    // normal flow (answersMutation), always move on to goals afterward regardless of
+    // needs_clarification — that's the whole point of "skip assessment".
+    setStep("thinking")
+    try {
+      const result = await apiFetch<ClarityResult>("/projects/intake/answers", {
+        method: "POST",
+        body: JSON.stringify({ idea: idea.trim(), answers: answered }),
+      })
+      setClarity(result)
+      requestGoalSuggestions(result)
+    } catch {
+      requestGoalSuggestions()
+    }
+  }
+
   function goToNextQuestion({ submitAtEnd = true }: { submitAtEnd?: boolean } = {}) {
     if (!clarity) return
     const isLast = questionIndex >= clarity.clarifying_questions.length - 1
@@ -328,7 +364,7 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
               <button
                 type="button"
                 className="secondary-button"
-                onClick={() => requestGoalSuggestions()}
+                onClick={skipAssessment}
                 disabled={goalsMutation.isPending || answersMutation.isPending}
               >
                 Skip assessment
