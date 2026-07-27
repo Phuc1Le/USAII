@@ -152,10 +152,12 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
 
   function submitClarifyingAnswers() {
     if (!clarity) return
-    const qaPairs = clarity.clarifying_questions.map((question, index) => ({
-      question: question.question,
-      answer: answers[index]?.trim() ?? "",
-    }))
+    const qaPairs = clarity.clarifying_questions
+      .map((question, index) => ({
+        question: question.question,
+        answer: answers[index]?.trim() ?? "",
+      }))
+      .filter((qa) => qa.answer)
     // clarity gets overwritten with the re-assessed result in answersMutation's onSuccess,
     // so snapshot the actually-answered pairs here rather than re-deriving them later.
     // Re-keying on question text means resubmitting the same round (e.g. after going back
@@ -165,6 +167,10 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
       for (const qa of qaPairs) next.set(qa.question, qa.answer)
       return next
     })
+    if (qaPairs.length === 0) {
+      requestGoalSuggestions()
+      return
+    }
     answersMutation.mutate({
       idea: idea.trim(),
       answers: qaPairs,
@@ -207,15 +213,11 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
     }
   }
 
-  function goToNextQuestion({ submitAtEnd = true }: { submitAtEnd?: boolean } = {}) {
+  function goToNextQuestion() {
     if (!clarity) return
     const isLast = questionIndex >= clarity.clarifying_questions.length - 1
     if (isLast) {
-      if (submitAtEnd) {
-        submitClarifyingAnswers()
-      } else {
-        requestGoalSuggestions()
-      }
+      submitClarifyingAnswers()
       return
     }
     setQuestionIndex((index) => index + 1)
@@ -372,12 +374,16 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
               <button
                 type="button"
                 className="secondary-button"
-                onClick={() => goToNextQuestion({ submitAtEnd: false })}
+                onClick={goToNextQuestion}
                 disabled={goalsMutation.isPending || answersMutation.isPending}
               >
                 Skip question
               </button>
-              <button type="submit" className="primary-button" disabled={goalsMutation.isPending || answersMutation.isPending}>
+              <button
+                type="submit"
+                className="primary-button"
+                disabled={goalsMutation.isPending || answersMutation.isPending || !(answers[questionIndex]?.trim())}
+              >
                 Next
               </button>
             </div>
