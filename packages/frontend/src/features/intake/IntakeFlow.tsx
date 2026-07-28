@@ -150,12 +150,12 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
     })
   }
 
-  function submitClarifyingAnswers() {
+  function submitClarifyingAnswers(skipIndex?: number) {
     if (!clarity) return
     const qaPairs = clarity.clarifying_questions
       .map((question, index) => ({
         question: question.question,
-        answer: answers[index]?.trim() ?? "",
+        answer: index === skipIndex ? "" : answers[index]?.trim() ?? "",
       }))
       .filter((qa) => qa.answer)
     // clarity gets overwritten with the re-assessed result in answersMutation's onSuccess,
@@ -221,6 +221,22 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
       return
     }
     setQuestionIndex((index) => index + 1)
+  }
+
+  function skipQuestion() {
+    if (!clarity) return
+    const index = questionIndex
+    setAnswers((current) => {
+      const next = [...current]
+      next[index] = ""
+      return next
+    })
+    const isLast = index >= clarity.clarifying_questions.length - 1
+    if (isLast) {
+      submitClarifyingAnswers(index)
+      return
+    }
+    setQuestionIndex((i) => i + 1)
   }
 
   function updateAnswer(value: string) {
@@ -374,7 +390,7 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
               <button
                 type="button"
                 className="secondary-button"
-                onClick={goToNextQuestion}
+                onClick={skipQuestion}
                 disabled={goalsMutation.isPending || answersMutation.isPending}
               >
                 Skip question
