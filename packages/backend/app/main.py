@@ -259,7 +259,7 @@ def send_message(
         "prior_steps": prior_steps,
         "history": [
             {"role": m.role, "content": m.content}
-            for m in session.messages[-10:]  # last 10 messages
+            for m in session.messages[:-1][-10:]  # last 10 messages, excluding the one just saved above
         ],
         "new_message": body.content,
     }

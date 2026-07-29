@@ -1,5 +1,8 @@
 import json
 from textwrap import dedent
+from typing import NamedTuple
+
+from google.genai import types
 
 from app.schemas import (
     ChatRequest,
@@ -203,42 +206,63 @@ def build_tasks_prompt(body: GenerateTasksRequest) -> str:
     )
 
 
-def _build_plain_prompt(task: str, payload: dict) -> str:
-    return dedent(
-        f"""
-        You are the Zero to One planning assistant.
-        {task}
-
-        Rules:
-        - Respond in clear, concise plain text. Use markdown for structure (bold, lists) when helpful.
-        - Do not wrap your response in JSON or code fences.
-        - Do not invent facts that are not supported by the input payload.
-        - If a value is uncertain, ask a short clarifying question rather than guessing.
-
-        Input payload:
-        {json.dumps(payload, indent=2, sort_keys=True)}
-        """
-    ).strip()
+class ChatPrompt(NamedTuple):
+    system_instruction: str
+    contents: list[types.Content]
 
 
-def build_chat_prompt(body: ChatRequest) -> str:
-    payload = body.model_dump(mode="json")
+def _to_gemini_role(role: str) -> str:
+    # Gemini's Content.role vocabulary is "user"/"model" — our own wire format
+    # (ChatMessage.role, the DB, the frontend) uses "user"/"assistant". This mapping
+    # only matters right here, at the boundary to the SDK call — nowhere else.
+    return "model" if role == "assistant" else "user"
+
+
+def build_chat_prompt(body: ChatRequest) -> ChatPrompt:
+    # Stable across every turn of a session (until a step/decision actually changes),
+    # plus the rolling summary — none of this is something either party "said", so it
+    # belongs in system_instruction rather than as a conversation turn.
+    stable_context = {
+        "scope_type": body.scope_type,
+        "focused_step": body.focused_step.model_dump(mode="json") if body.focused_step else None,
+        "project_context": body.project_context.model_dump(mode="json"),
+        "prior_steps": [p.model_dump(mode="json") for p in body.prior_steps],
+    }
+
+    system_sections = [
+        dedent(
+            """
+            You are the Zero to One planning assistant.
+            You are helping the user continue work on their project.
+            Use the supplied project context, current step, chat history, and the latest user message to respond helpfully.
+            Keep the answer practical, concise, and grounded in the plan.
+            Prefer specific next actions over generic advice.
+            If a conversation summary is provided, use it to maintain continuity with earlier parts of the conversation.
+            Tailor recommendations to the project domain when possible: for technology, focus on architecture, implementation, validation, and rollout; for social media, focus on audience growth, content rhythm, engagement, and community management; for business, focus on market fit, customer acquisition, revenue logic, and operations; for education, focus on instruction quality, accessibility, progression, and assessment; for health, focus on safety, privacy, trust, and workflow fit; for finance, focus on trust, compliance, risk control, and transparency; for creative arts, focus on ideation, iteration, production quality, and distribution; for community, focus on participation, moderation, trust, and retention; for productivity, focus on efficiency, friction reduction, workflow design, and adoption; for sustainability, focus on measurable impact, resource efficiency, and long-term resilience.
+            If the user is asking something that cannot be answered safely from the context, ask a short clarifying question instead of guessing.
+            Do not invent facts that are not present in the context.
+            If the user makes or confirms one or more concrete project decisions this turn (e.g. choosing a technology, scope, timeline, or approach), end your response with one line per decision in the exact form "DECISION: <concise statement of the decision>", each decision on its own line.
+            Only include DECISION lines when a real decision was made or confirmed in this message — most turns should not include any.
+
+            Rules:
+            - Respond in clear, concise plain text. Use markdown for structure (bold, lists) when helpful.
+            - Do not wrap your response in JSON or code fences.
+            """
+        ).strip(),
+        f"Project context:\n{json.dumps(stable_context, indent=2, sort_keys=True)}",
+    ]
     if body.summary:
-        payload["summary"] = body.summary
-    return _build_plain_prompt(
-        """
-        You are helping the user continue work on their project.
-        Use the supplied project context, current step, chat history, and the latest user message to respond helpfully.
-        Keep the answer practical, concise, and grounded in the plan.
-        Prefer specific next actions over generic advice.
-        If a conversation summary is provided, use it to maintain continuity with earlier parts of the conversation.
-        Tailor recommendations to the project domain when possible: for technology, focus on architecture, implementation, validation, and rollout; for social media, focus on audience growth, content rhythm, engagement, and community management; for business, focus on market fit, customer acquisition, revenue logic, and operations; for education, focus on instruction quality, accessibility, progression, and assessment; for health, focus on safety, privacy, trust, and workflow fit; for finance, focus on trust, compliance, risk control, and transparency; for creative arts, focus on ideation, iteration, production quality, and distribution; for community, focus on participation, moderation, trust, and retention; for productivity, focus on efficiency, friction reduction, workflow design, and adoption; for sustainability, focus on measurable impact, resource efficiency, and long-term resilience.
-        If the user is asking something that cannot be answered safely from the context, ask a short clarifying question instead of guessing.
-        Do not invent facts that are not present in the context.
-        If the user makes or confirms one or more concrete project decisions this turn (e.g. choosing a technology, scope, timeline, or approach), end your response with one line per decision in the exact form "DECISION: <concise statement of the decision>", each decision on its own line.
-        Only include DECISION lines when a real decision was made or confirmed in this message — most turns should not include any.
-        """,
-        payload,
+        system_sections.append(f"Conversation summary of earlier turns:\n{body.summary}")
+
+    contents = [
+        types.Content(role=_to_gemini_role(m.role), parts=[types.Part(text=m.content)])
+        for m in body.history
+    ]
+    contents.append(types.Content(role="user", parts=[types.Part(text=body.new_message)]))
+
+    return ChatPrompt(
+        system_instruction="\n\n".join(system_sections),
+        contents=contents,
     )
 
 
