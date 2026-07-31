@@ -2,14 +2,15 @@
 
 from contextlib import asynccontextmanager
 import json
+import logging
 import re
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 import httpx
 
-from app.database import init_db, get_db
+from app.database import init_db, get_db, session_scope
 from app.config import AGENT_URL, USE_MOCK_AGENT, CHAT_SUMMARY_TRIGGER, CHAT_SUMMARY_KEEP, CHAT_SUMMARY_RE_EVERY
 from app import schemas, crud, serializers, agent_client
 
@@ -17,6 +18,8 @@ from app import schemas, crud, serializers, agent_client
 async def lifespan(_app: FastAPI):
     init_db()
     yield
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Zero to One API", version="0.1.0", lifespan=lifespan)
 
@@ -170,6 +173,7 @@ def open_session(body: schemas.OpenSessionRequest, db: Session = Depends(get_db)
 def send_message(
     session_id: int,
     body: schemas.SendMessageRequest,
+    background: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     session = crud.get_session(db, session_id)
@@ -179,10 +183,10 @@ def send_message(
     # save user message
     crud.save_message(db, session_id, "user", body.content)
 
-    # rolling summarization check
-    _maybe_summarize(db, session_id)
+    # rolling summarization runs after the response — see _summarize_in_background
+    background.add_task(_summarize_in_background, session_id)
 
-    # reload session to pick up any fresh summary
+    # reload session for the chat context below
     session = crud.get_session(db, session_id)
 
     if USE_MOCK_AGENT:
@@ -347,6 +351,10 @@ def _maybe_summarize(db: Session, session_id: int) -> None:
         return
     # messages to summarize: all except the last KEEP
     to_summarize_count = msg_count - CHAT_SUMMARY_KEEP
+    # nothing to summarize (can happen if TRIGGER <= KEEP) — don't burn an LLM call
+    if to_summarize_count <= 0:
+        return
+
     # if we already have a summary, only send the new old messages
     start_idx = session.summary_message_count or 0
     old_messages = crud.get_messages_range(db, session_id, start_idx, to_summarize_count)
@@ -363,5 +371,22 @@ def _maybe_summarize(db: Session, session_id: int) -> None:
         )
         crud.update_session_summary(db, session_id, new_summary, to_summarize_count)
     except Exception:
-        # summarization failure is non-fatal — proceed without it
-        pass
+        # summarization failure is non-fatal — chat must keep working
+        logger.exception("summarization call failed for session %s", session_id)
+
+
+
+def _summarize_in_background(session_id: int) -> None:
+    """Run rolling summarization outside the request/response cycle.
+
+    Opens its own DB session — the request's session is already closed
+    by the time background tasks run.
+    """
+
+    logger.info("background summarization starting for session %s", session_id)
+
+    try:
+        with session_scope() as db:
+            _maybe_summarize(db, session_id)
+    except Exception:
+        logger.exception("background summarization failed for session %s", session_id)

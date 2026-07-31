@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from pathlib import Path
 
 from sqlalchemy import create_engine
@@ -27,3 +28,21 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+@contextmanager
+def session_scope():
+    """Database session for code that runs outside a request.
+
+    Background tasks can't reuse the request's session — FastAPI closes it
+    when the request finishes. This opens and closes its own.
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+

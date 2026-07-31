@@ -307,6 +307,15 @@ def update_session_summary(
     ).first()
     if not session:
         return None
+
+    # background tasks can finish out of order — never move the bookmark backwards,
+    # or _maybe_summarize will re-summarize the same messages on every turn
+    if (
+        session.summary_message_count is not None
+        and message_count <= session.summary_message_count
+    ):
+        return session
+    
     session.summary = summary
     session.summary_message_count = message_count
     db.commit()
