@@ -330,12 +330,10 @@ def _maybe_summarize(db: Session, session_id: int) -> None:
     session = crud.get_session(db, session_id)
     if not session:
         return
-
-    msg_count = len(session.messages)
-
+        
+    msg_count = crud.get_len_message(db, session_id)
     if msg_count < CHAT_SUMMARY_TRIGGER:
         return
-
     # decide if re-summarization is due
     need_summary = False
     if session.summary is None:
@@ -345,20 +343,18 @@ def _maybe_summarize(db: Session, session_id: int) -> None:
         and msg_count - session.summary_message_count >= CHAT_SUMMARY_KEEP + CHAT_SUMMARY_RE_EVERY
     ):
         need_summary = True
-
     if not need_summary:
         return
-
     # messages to summarize: all except the last KEEP
     to_summarize_count = msg_count - CHAT_SUMMARY_KEEP
-
     # if we already have a summary, only send the new old messages
     start_idx = session.summary_message_count or 0
-    old_messages = session.messages[start_idx:to_summarize_count]
-
+    old_messages = crud.get_messages_range(db, session_id, start_idx, to_summarize_count)
     # always include the first message — it carries the project context and initial task setup
-    if start_idx > 0 and len(session.messages) > 0:
-        old_messages.insert(0, session.messages[0])
+    if start_idx > 0:
+        first_message = crud.get_first_message(db, session_id)
+        if first_message:
+            old_messages.insert(0, first_message)
 
     try:
         new_summary = agent_client.summarize_chat(

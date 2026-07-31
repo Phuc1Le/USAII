@@ -2,6 +2,8 @@
 
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import selectinload
+from sqlalchemy import func
 from app import models
 from app import schemas
 
@@ -25,21 +27,47 @@ def create_project(db: Session, body: schemas.CreateProjectRequest) -> models.Pr
 
 
 def get_project(db: Session, project_id: int) -> models.Project | None:
-    return db.query(models.Project).filter(models.Project.id == project_id).first()
+    return (
+        db.query(models.Project)
+        .filter(models.Project.id == project_id)
+        .options(
+            selectinload(models.Project.steps).selectinload(models.Step.tasks),
+            selectinload(models.Project.steps).selectinload(models.Step.dependencies),
+            selectinload(models.Project.milestones),
+        )
+        .first()
+    )
 
 
 def get_all_projects(db: Session) -> list[models.Project]:
-    return db.query(models.Project).order_by(models.Project.id).all()
+    return (
+        db.query(models.Project)
+        .options(
+            selectinload(models.Project.steps).selectinload(models.Step.tasks),
+            selectinload(models.Project.steps).selectinload(models.Step.dependencies),
+            selectinload(models.Project.milestones),
+        )
+        .order_by(models.Project.id)
+        .all()
+    )
 
 
 def update_project(db: Session, project_id: int, body: schemas.UpdateProjectRequest) -> models.Project | None:
-    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    project = (
+        db.query(models.Project)
+        .filter(models.Project.id == project_id)
+        .options(
+            selectinload(models.Project.steps).selectinload(models.Step.tasks),
+            selectinload(models.Project.steps).selectinload(models.Step.dependencies),
+            selectinload(models.Project.milestones),
+        )
+        .first()
+    )
     if not project:
         return None
     if body.status is not None:
         project.status = body.status
     db.commit()
-    db.refresh(project)
     return project
 
 
@@ -257,10 +285,15 @@ def get_decisions(db: Session, project_id: int) -> list[models.Decision]:
 
 
 def get_step_chat_sessions(db: Session, project_id: int) -> list[models.ChatSession]:
-    return db.query(models.ChatSession).filter(
-        models.ChatSession.project_id == project_id,
-        models.ChatSession.scope_type == "step",
-    ).all()
+    return (
+        db.query(models.ChatSession)
+        .options(selectinload(models.ChatSession.messages))
+        .filter(
+            models.ChatSession.project_id == project_id,
+            models.ChatSession.scope_type == "step",
+        )
+        .all()
+    )
 
 
 def update_session_summary(
@@ -279,3 +312,38 @@ def update_session_summary(
     db.commit()
     db.refresh(session)
     return session
+
+def get_len_message(db: Session, session_id: int):
+    return (
+        db.query(func.count(models.ChatMessage.id))
+        .filter(models.ChatMessage.session_id == session_id)
+        .scalar()
+    )
+
+
+def get_messages_range(
+    db: Session,
+    session_id: int,
+    start: int,
+    stop: int,
+) -> list[models.ChatMessage]:
+    limit = max(0, stop - start)
+    if limit == 0:
+        return []
+    return (
+        db.query(models.ChatMessage)
+        .filter(models.ChatMessage.session_id == session_id)
+        .order_by(models.ChatMessage.id)
+        .offset(start)
+        .limit(limit)
+        .all()
+    )
+
+
+def get_first_message(db: Session, session_id: int) -> models.ChatMessage | None:
+    return (
+        db.query(models.ChatMessage)
+        .filter(models.ChatMessage.session_id == session_id)
+        .order_by(models.ChatMessage.id)
+        .first()
+    )
