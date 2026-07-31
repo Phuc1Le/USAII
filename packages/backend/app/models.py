@@ -41,6 +41,9 @@ class Step(Base):
     status = Column(String, nullable=False, default="todo")
     intended_start = Column(String, nullable=True)  # ISO date string, e.g. "2026-06-20"
     intended_end = Column(String, nullable=True)
+    
+    # filled in when the step is marked done — see Phase 4 cross-step memory
+    outcome_summary = Column(Text, nullable=True)
 
     project = relationship("Project", back_populates="steps")
     tasks = relationship("Task", back_populates="step", cascade="all, delete-orphan")
