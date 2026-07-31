@@ -20,6 +20,8 @@ async def lifespan(_app: FastAPI):
     yield
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 app = FastAPI(title="Zero to One API", version="0.1.0", lifespan=lifespan)
 
@@ -364,6 +366,11 @@ def _maybe_summarize(db: Session, session_id: int) -> None:
         if first_message:
             old_messages.insert(0, first_message)
 
+    logger.info(
+        "summarizing session %s: %s messages, bookmark -> %s",
+        session_id, len(old_messages), to_summarize_count,
+    )
+
     try:
         new_summary = agent_client.summarize_chat(
             messages=[{"role": m.role, "content": m.content} for m in old_messages],
@@ -382,8 +389,6 @@ def _summarize_in_background(session_id: int) -> None:
     Opens its own DB session — the request's session is already closed
     by the time background tasks run.
     """
-
-    logger.info("background summarization starting for session %s", session_id)
 
     try:
         with session_scope() as db:
