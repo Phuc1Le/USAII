@@ -57,6 +57,12 @@ This keeps business logic isolated from prompting logic, allows the agent to evo
 
 Projects, tasks, milestones, decisions and conversations are stored separately, allowing the agent to retrieve project-specific decision throughout a user's workflow.
 
+## What I Learned
+
+Building Stella taught me that most of the complexity wasn't prompting the LLM—it was managing application state around it.
+
+Separating the agent from the backend, defining API contracts first, and maintaining conversational memory made the system significantly easier to extend. To continue this project, we are introducing retrieval-augmented memory for Decisions retrieval, production deployment, context caching, and cross step memory.
+
 ## Prerequisites
 
 - **Python** 3.12 or higher
@@ -165,4 +171,4 @@ npm run dev
 
 ### Agent API
 - **Route:** `http://localhost:8001/docs`
-- **File:** [contracts/agent_api.yaml](contracts/agent_api.yaml
+- **File:** [contracts/agent_api.yaml](contracts/agent_api.yaml)
