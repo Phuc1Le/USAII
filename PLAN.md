@@ -5,8 +5,9 @@
 The chat route (`/agent/chat`) is currently a single-shot LLM wrapper: `build_chat_prompt`
 flattens the whole request into one prompt string, `stream_text` sends it to Gemini once, and
 whatever comes back streams straight to the user. This plan turns it into a ReAct-style loop with
-three tools (`web_search`, `query_decisions`, `retrieve_step`), building on the prompt restructuring
-already done (stable project-context block vs. per-turn variable block in `prompts.py`).
+four tools (`web_search`, `query_decisions`, `retrieve_step`, `retrieve_milestones`), building on
+the prompt restructuring already done (stable project-context block vs. per-turn variable block in
+`prompts.py`).
 
 ## Architecture decisions (locked in before implementation)
 
@@ -35,6 +36,12 @@ already done (stable project-context block vs. per-turn variable block in `promp
    because tool calls and tool results are threaded through the model via that same turns mechanism
    — building the ReAct loop on top of flattened text would mean redoing this later anyway.
 
+8. **A fourth tool, `retrieve_milestones`, is needed** — `ProjectContext` (`agent/app/schemas.py`)
+   has no `milestones` field, and none of the other three tools cover it either. `Milestone` is a
+   first-class entity (`Project 1—N Milestone`, optionally tied to a `Step`) that the chat agent
+   currently cannot see or answer questions about at all (e.g. "are we on track for the MVP
+   milestone"). Same shape as `retrieve_step`: backend-proxied, e.g. `GET /internal/milestones?project_id=`.
+
 ## Open dependency
 
 - Decision embedding generation + backfill (owned by teammate) — blocks `query_decisions` from
@@ -54,11 +61,12 @@ to reflect the new shape.
 
 ## Step 2 — Tools in isolation
 
-Implement `web_search`, `query_decisions`, `retrieve_step` as plain async functions, tested by
-calling them directly (no agent involved):
+Implement `web_search`, `query_decisions`, `retrieve_step`, `retrieve_milestones` as plain async
+functions, tested by calling them directly (no agent involved):
 - `web_search`: direct external API call.
 - `query_decisions`: HTTP call to new backend internal endpoint, project-scoped.
 - `retrieve_step`: HTTP call to new backend internal endpoint.
+- `retrieve_milestones`: HTTP call to new backend internal endpoint, project-scoped.
 
 **Acceptance:** each returns correct typed results when called directly. `query_decisions`
 correctness for *relevance* depends on the embeddings dependency above; scoping/plumbing does not.
