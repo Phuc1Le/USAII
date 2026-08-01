@@ -1,0 +1,77 @@
+services:
+  agent:
+    build:
+      context: ./packages/agent
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL}
+      CHAT_HISTORY_LIMIT: ${CHAT_HISTORY_LIMIT}
+      CLARITY_THRESHOLD: ${CLARITY_THRESHOLD}
+      CHAT_SUMMARY_TRIGGER: ${CHAT_SUMMARY_TRIGGER}
+      CHAT_SUMMARY_KEEP: ${CHAT_SUMMARY_KEEP}
+      CHAT_SUMMARY_RE_EVERY: ${CHAT_SUMMARY_RE_EVERY}
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./packages/backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      USE_MOCK_AGENT: ${USE_MOCK_AGENT}
+      AGENT_URL: ${AGENT_URL}
+      CHAT_SUMMARY_TRIGGER: ${CHAT_SUMMARY_TRIGGER}
+      CHAT_SUMMARY_KEEP: ${CHAT_SUMMARY_KEEP}
+      CHAT_SUMMARY_RE_EVERY: ${CHAT_SUMMARY_RE_EVERY}
+    depends_on:
+      - agent
+      - postgres
+    restart: unless-stopped
+  
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: usaii
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@usaii.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./packages/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:4173"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:

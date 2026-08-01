@@ -1,12 +1,9 @@
 from sqlalchemy import (
-    create_engine, Column, Integer, String, Text, DateTime, ForeignKey
+    Column, Integer, String, Text, DateTime, ForeignKey
 )
 from sqlalchemy.orm import DeclarativeBase, relationship
-from sqlalchemy.orm import sessionmaker, Session
 from datetime import datetime, timezone
-
-DATABASE_URL = "sqlite:///./app.db"
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+from pgvector.sqlalchemy import Vector
 
 
 class Base(DeclarativeBase):
@@ -44,6 +41,9 @@ class Step(Base):
     status = Column(String, nullable=False, default="todo")
     intended_start = Column(String, nullable=True)  # ISO date string, e.g. "2026-06-20"
     intended_end = Column(String, nullable=True)
+    
+    # filled in when the step is marked done — see Phase 4 cross-step memory
+    outcome_summary = Column(Text, nullable=True)
 
     project = relationship("Project", back_populates="steps")
     tasks = relationship("Task", back_populates="step", cascade="all, delete-orphan")
@@ -123,19 +123,7 @@ class Decision(Base):
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     content = Column(Text, nullable=False)
+    embedding = Column(Vector(768), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     project = relationship("Project", back_populates="decisions")
-
-
-def init_db():
-    Base.metadata.create_all(engine)
-
-SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()

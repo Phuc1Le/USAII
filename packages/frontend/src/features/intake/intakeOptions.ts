@@ -24,6 +24,8 @@ export const descriptionOptions: Record<string, string[]> = {
     "Validating a product idea",
     "Creating a marketplace",
     "Improving internal operations",
+    "Making a supply chain management app",
+    "Planning enterprise resources"
   ],
   "Social Media": [
     "Growing a creator channel",

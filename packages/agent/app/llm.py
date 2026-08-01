@@ -44,11 +44,16 @@ def json_call(prompt: str, response_schema: type[T]) -> T:
         ) from exc
 
 
-def stream_text(prompt: str) -> Iterator[str]:
+def stream_text(
+    contents: list[types.Content],
+    *,
+    system_instruction: str | None = None,
+) -> Iterator[str]:
     try:
         stream = _client.models.generate_content_stream(
             model=GEMINI_MODEL,
-            contents=prompt,
+            contents=contents,
+            config=types.GenerateContentConfig(system_instruction=system_instruction),
         )
         for chunk in stream:
             text = getattr(chunk, "text", None)

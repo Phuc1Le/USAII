@@ -34,7 +34,9 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null)
   const [questionIndex, setQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<string[]>([])
-  const [confirmedAnswers, setConfirmedAnswers] = useState<{ question: string; answer: string }[]>([])
+  // keyed by question text so re-answering the same question (e.g. after going back) replaces
+  // the prior entry instead of appending a duplicate
+  const [confirmedAnswers, setConfirmedAnswers] = useState<Map<string, string>>(new Map())
 
   const createProjectMutation = useMutation({
     mutationFn: (payload: CreateProjectRequest) =>
@@ -148,33 +150,93 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
     })
   }
 
-  function submitClarifyingAnswers() {
+  function submitClarifyingAnswers(skipIndex?: number) {
     if (!clarity) return
-    const qaPairs = clarity.clarifying_questions.map((question, index) => ({
-      question: question.question,
-      answer: answers[index]?.trim() ?? "",
-    }))
+    const qaPairs = clarity.clarifying_questions
+      .map((question, index) => ({
+        question: question.question,
+        answer: index === skipIndex ? "" : answers[index]?.trim() ?? "",
+      }))
+      .filter((qa) => qa.answer)
     // clarity gets overwritten with the re-assessed result in answersMutation's onSuccess,
-    // so snapshot the actually-answered pairs here rather than re-deriving them later
-    setConfirmedAnswers((prev) => [...prev, ...qaPairs])
+    // so snapshot the actually-answered pairs here rather than re-deriving them later.
+    // Re-keying on question text means resubmitting the same round (e.g. after going back
+    // from the goals screen) replaces the prior answer instead of duplicating it.
+    setConfirmedAnswers((prev) => {
+      const next = new Map(prev)
+      for (const qa of qaPairs) next.set(qa.question, qa.answer)
+      return next
+    })
+    if (qaPairs.length === 0) {
+      requestGoalSuggestions()
+      return
+    }
     answersMutation.mutate({
       idea: idea.trim(),
       answers: qaPairs,
     })
   }
 
-  function goToNextQuestion({ submitAtEnd = true }: { submitAtEnd?: boolean } = {}) {
+  async function skipAssessment() {
+    if (!clarity) return
+    const qaPairs = clarity.clarifying_questions
+      .slice(0, questionIndex)
+      .map((question, index) => ({
+        question: question.question,
+        answer: answers[index]?.trim() ?? "",
+      }))
+    setConfirmedAnswers((prev) => {
+      const next = new Map(prev)
+      for (const qa of qaPairs) if (qa.answer) next.set(qa.question, qa.answer)
+      return next
+    })
+
+    const answered = qaPairs.filter((qa) => qa.answer)
+    if (answered.length === 0) {
+      requestGoalSuggestions()
+      return
+    }
+
+    // Re-assess so enriched_idea picks up the already-answered questions, but unlike the
+    // normal flow (answersMutation), always move on to goals afterward regardless of
+    // needs_clarification — that's the whole point of "skip assessment".
+    setStep("thinking")
+    try {
+      const result = await apiFetch<ClarityResult>("/projects/intake/answers", {
+        method: "POST",
+        body: JSON.stringify({ idea: idea.trim(), answers: answered }),
+      })
+      setClarity(result)
+      requestGoalSuggestions(result)
+    } catch {
+      requestGoalSuggestions()
+    }
+  }
+
+  function goToNextQuestion() {
     if (!clarity) return
     const isLast = questionIndex >= clarity.clarifying_questions.length - 1
     if (isLast) {
-      if (submitAtEnd) {
-        submitClarifyingAnswers()
-      } else {
-        requestGoalSuggestions()
-      }
+      submitClarifyingAnswers()
       return
     }
     setQuestionIndex((index) => index + 1)
+  }
+
+  function skipQuestion() {
+    if (!clarity) return
+    const index = questionIndex
+    setAnswers((current) => {
+      const next = [...current]
+      next[index] = ""
+      return next
+    })
+    const isLast = index >= clarity.clarifying_questions.length - 1
+    if (isLast) {
+      submitClarifyingAnswers(index)
+      return
+    }
+    setQuestionIndex((i) => i + 1)
   }
 
   function updateAnswer(value: string) {
@@ -196,7 +258,9 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
 
   function createProject() {
     if (!selectedGoal) return
-    const clarifyingAnswers = confirmedAnswers.filter((qa) => qa.answer)
+    const clarifyingAnswers = Array.from(confirmedAnswers, ([question, answer]) => ({ question, answer })).filter(
+      (qa) => qa.answer,
+    )
     createProjectMutation.mutate({
       category: category.trim(),
       description: description.trim(),
@@ -304,6 +368,7 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
             }}
           >
             <div className="question-copy">
+              <span className="clarity-badge">Clarity {clarityPercent}%</span>
               <span className="eyebrow">{progressLabel}</span>
               <h2 className="question-title">{currentQuestion.question}</h2>
             </div>
@@ -317,7 +382,7 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
               <button
                 type="button"
                 className="secondary-button"
-                onClick={() => requestGoalSuggestions()}
+                onClick={skipAssessment}
                 disabled={goalsMutation.isPending || answersMutation.isPending}
               >
                 Skip assessment
@@ -325,12 +390,16 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
               <button
                 type="button"
                 className="secondary-button"
-                onClick={() => goToNextQuestion({ submitAtEnd: false })}
+                onClick={skipQuestion}
                 disabled={goalsMutation.isPending || answersMutation.isPending}
               >
                 Skip question
               </button>
-              <button type="submit" className="primary-button" disabled={goalsMutation.isPending || answersMutation.isPending}>
+              <button
+                type="submit"
+                className="primary-button"
+                disabled={goalsMutation.isPending || answersMutation.isPending || !(answers[questionIndex]?.trim())}
+              >
                 Next
               </button>
             </div>

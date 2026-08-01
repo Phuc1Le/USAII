@@ -2,39 +2,43 @@
 
 from contextlib import asynccontextmanager
 import json
-import os
-from fastapi import FastAPI, HTTPException, Depends
+import logging
+import re
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 import httpx
 
-from app.models import init_db, get_db
+from app.database import init_db, get_db, session_scope
+from app.config import AGENT_URL, USE_MOCK_AGENT, CHAT_SUMMARY_TRIGGER, CHAT_SUMMARY_KEEP, CHAT_SUMMARY_RE_EVERY
 from app import schemas, crud, serializers, agent_client
-from dotenv import load_dotenv
-
-load_dotenv()
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
     yield
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+
 app = FastAPI(title="Zero to One API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    # allow_origins=["http://localhost:5174"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600,
 )
-
-AGENT_URL = os.environ.get("AGENT_URL", "http://localhost:8001")
-USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT", "").lower() == "true"
-CHAT_SUMMARY_TRIGGER = int(os.environ.get("CHAT_SUMMARY_TRIGGER", "10"))
-CHAT_SUMMARY_KEEP = int(os.environ.get("CHAT_SUMMARY_KEEP", "3"))
-CHAT_SUMMARY_RE_EVERY = int(os.environ.get("CHAT_SUMMARY_RE_EVERY", "2"))
 
 # ── Intake ────────────────────────────────────────────────────────
 
@@ -171,6 +175,7 @@ def open_session(body: schemas.OpenSessionRequest, db: Session = Depends(get_db)
 def send_message(
     session_id: int,
     body: schemas.SendMessageRequest,
+    background: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     session = crud.get_session(db, session_id)
@@ -180,10 +185,10 @@ def send_message(
     # save user message
     crud.save_message(db, session_id, "user", body.content)
 
-    # rolling summarization check
-    _maybe_summarize(db, session_id)
+    # rolling summarization runs after the response — see _summarize_in_background
+    background.add_task(_summarize_in_background, session_id)
 
-    # reload session to pick up any fresh summary
+    # reload session for the chat context below
     session = crud.get_session(db, session_id)
 
     if USE_MOCK_AGENT:
@@ -260,7 +265,7 @@ def send_message(
         "prior_steps": prior_steps,
         "history": [
             {"role": m.role, "content": m.content}
-            for m in session.messages[-10:]  # last 10 messages
+            for m in session.messages[:-1][-10:]  # last 10 messages, excluding the one just saved above
         ],
         "new_message": body.content,
     }
@@ -268,8 +273,11 @@ def send_message(
     if session.summary:
         chat_request["summary"] = session.summary
 
+    # tolerant to markdown emphasis, bullets, and casing around the "DECISION:" marker
+    decision_re = re.compile(r"^[\s*_>-]*decision\s*:\s*", re.IGNORECASE)
+
     def is_decision_line(text: str) -> bool:
-        return text.strip().startswith("DECISION:")
+        return bool(decision_re.match(text.strip()))
 
     def real_stream():
         full_response = ""      # raw model output, including any DECISION lines
@@ -309,9 +317,12 @@ def send_message(
         # extract and save any decisions from the raw response
         decision_saved = False
         for line in full_response.split("\n"):
-            if is_decision_line(line):
-                crud.save_decision(db, project.id, line.split("DECISION:", 1)[1].strip())
-                decision_saved = True
+            stripped = line.strip()
+            if is_decision_line(stripped):
+                content = decision_re.sub("", stripped).strip()
+                if content:
+                    crud.save_decision(db, project.id, content)
+                    decision_saved = True
 
         if decision_saved:
             yield f"data: {json.dumps({'decision': True})}\n\n"
@@ -325,12 +336,10 @@ def _maybe_summarize(db: Session, session_id: int) -> None:
     session = crud.get_session(db, session_id)
     if not session:
         return
-
-    msg_count = len(session.messages)
-
+        
+    msg_count = crud.get_len_message(db, session_id)
     if msg_count < CHAT_SUMMARY_TRIGGER:
         return
-
     # decide if re-summarization is due
     need_summary = False
     if session.summary is None:
@@ -340,20 +349,27 @@ def _maybe_summarize(db: Session, session_id: int) -> None:
         and msg_count - session.summary_message_count >= CHAT_SUMMARY_KEEP + CHAT_SUMMARY_RE_EVERY
     ):
         need_summary = True
-
     if not need_summary:
         return
-
     # messages to summarize: all except the last KEEP
     to_summarize_count = msg_count - CHAT_SUMMARY_KEEP
+    # nothing to summarize (can happen if TRIGGER <= KEEP) — don't burn an LLM call
+    if to_summarize_count <= 0:
+        return
 
     # if we already have a summary, only send the new old messages
     start_idx = session.summary_message_count or 0
-    old_messages = session.messages[start_idx:to_summarize_count]
-
+    old_messages = crud.get_messages_range(db, session_id, start_idx, to_summarize_count)
     # always include the first message — it carries the project context and initial task setup
-    if start_idx > 0 and len(session.messages) > 0:
-        old_messages.insert(0, session.messages[0])
+    if start_idx > 0:
+        first_message = crud.get_first_message(db, session_id)
+        if first_message:
+            old_messages.insert(0, first_message)
+
+    logger.info(
+        "summarizing session %s: %s messages, bookmark -> %s",
+        session_id, len(old_messages), to_summarize_count,
+    )
 
     try:
         new_summary = agent_client.summarize_chat(
@@ -362,5 +378,20 @@ def _maybe_summarize(db: Session, session_id: int) -> None:
         )
         crud.update_session_summary(db, session_id, new_summary, to_summarize_count)
     except Exception:
-        # summarization failure is non-fatal — proceed without it
-        pass
+        # summarization failure is non-fatal — chat must keep working
+        logger.exception("summarization call failed for session %s", session_id)
+
+
+
+def _summarize_in_background(session_id: int) -> None:
+    """Run rolling summarization outside the request/response cycle.
+
+    Opens its own DB session — the request's session is already closed
+    by the time background tasks run.
+    """
+
+    try:
+        with session_scope() as db:
+            _maybe_summarize(db, session_id)
+    except Exception:
+        logger.exception("background summarization failed for session %s", session_id)
