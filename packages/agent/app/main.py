@@ -88,8 +88,8 @@ def generate_tasks(body: GenerateTasksRequest):
 @app.post("/agent/chat")
 def chat(body: ChatRequest):
     chat_prompt = build_chat_prompt(body)
-    print(f"[chat] system_instruction={len(chat_prompt.system_instruction)} chars")
-    print(f"[chat] contents={[(c.role, c.parts[0].text[:40]) for c in chat_prompt.contents]}")
+    # print(f"[chat] system_instruction={len(chat_prompt.system_instruction)} chars")
+    # print(f"[chat] contents={[(c.role, c.parts[0].text[:40]) for c in chat_prompt.contents]}")
     def event_generator():
         for chunk in stream_text(
             chat_prompt.contents,

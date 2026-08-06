@@ -134,3 +134,13 @@ class SummaryRequest(BaseModel):
 
 class SummaryResponse(BaseModel):
     summary: str
+
+# Web search tool
+class WebSearchResultItem(BaseModel):
+    title: str
+    link: str
+    snippet: str
+
+class WebSearchResult(BaseModel):
+    query: str
+    results: list[WebSearchResultItem]

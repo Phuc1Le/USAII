@@ -11,6 +11,7 @@ except IndexError:
 load_dotenv()
 
 GEMINI_API_KEY = ""
+SERP_API_KEY = ""
 GEMINI_MODEL = "gemini-2.5-flash"
 CHAT_HISTORY_LIMIT = 20
 CLARITY_THRESHOLD = 0.7
@@ -47,13 +48,15 @@ def _load_settings() -> None:
     import os
     import sys
 
-    global GEMINI_API_KEY, GEMINI_MODEL, CHAT_HISTORY_LIMIT, CLARITY_THRESHOLD
+    global GEMINI_API_KEY, SERP_API_KEY, GEMINI_MODEL, CHAT_HISTORY_LIMIT, CLARITY_THRESHOLD
     global CHAT_SUMMARY_TRIGGER, CHAT_SUMMARY_KEEP, CHAT_SUMMARY_RE_EVERY
 
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
     if not GEMINI_API_KEY and "pytest" not in sys.modules:
         raise RuntimeError("GEMINI_API_KEY is required to start the agent service")
-
+    SERP_API_KEY = os.environ.get("SERP_API_KEY", "")
+    if not SERP_API_KEY and "pytest" not in sys.modules:
+        raise RuntimeError("SERP_API_KEY is required to start the agent searching service")
     GEMINI_MODEL = os.environ.get("GEMINI_MODEL", GEMINI_MODEL)
     CHAT_HISTORY_LIMIT = _int_from_env("CHAT_HISTORY_LIMIT", CHAT_HISTORY_LIMIT)
     CLARITY_THRESHOLD = _float_from_env("CLARITY_THRESHOLD", CLARITY_THRESHOLD)
