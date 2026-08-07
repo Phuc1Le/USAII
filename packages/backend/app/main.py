@@ -112,6 +112,12 @@ def list_decisions(project_id: int, db: Session = Depends(get_db)):
 
 
 # ── Steps / Tasks ─────────────────────────────────────────────────
+@app.get("/internal/steps/{step_id}", response_model=schemas.Step)
+def get_step(step_id: int, db: Session = Depends(get_db)):
+    step = crud.get_step(db, step_id)
+    if not step:
+        raise HTTPException(status_code=404, detail="Step not found")
+    return serializers.serialize_step(step)
 
 @app.patch("/api/v1/steps/{step_id}", response_model=schemas.Step)
 def update_step(step_id: int, body: schemas.UpdateStepRequest, db: Session = Depends(get_db)):

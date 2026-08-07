@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import os
 from dotenv import load_dotenv
 
 
@@ -18,7 +18,7 @@ CLARITY_THRESHOLD = 0.7
 CHAT_SUMMARY_TRIGGER = 6
 CHAT_SUMMARY_KEEP = 3
 CHAT_SUMMARY_RE_EVERY = 2
-
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
 
 def _int_from_env(name: str, default: int) -> int:
     import os

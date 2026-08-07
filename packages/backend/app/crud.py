@@ -114,6 +114,19 @@ def create_steps_from_plan(
     db.commit()
     return db_steps
 
+def get_step(db: Session, step_id: int) -> models.Step | None:
+    step = (db.query(models.Step)
+            .filter(models.Step.id == step_id)
+            .options(
+                selectinload(models.Step.tasks),
+                selectinload(models.Step.dependencies),
+                selectinload(models.Step.milestone)
+            )
+            .first()
+            )
+    if not step:
+        return None
+    return step
 
 # ── Milestones ────────────────────────────────────────────────────
 
