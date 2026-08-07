@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Iterator
 from typing import TypeVar
 
@@ -8,6 +9,8 @@ from pydantic import BaseModel
 
 from app.config import GEMINI_API_KEY, GEMINI_MODEL
 
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -38,6 +41,7 @@ def json_call(prompt: str, response_schema: type[T]) -> T:
     except HTTPException:
         raise
     except Exception as exc:
+        logger.exception("Gemini JSON call failed")
         raise HTTPException(
             status_code=502,
             detail=f"Gemini JSON call failed: {exc}",
@@ -60,6 +64,7 @@ def stream_text(
             if text:
                 yield text
     except Exception as exc:
+        logger.exception("Gemini stream failed")
         raise HTTPException(
             status_code=502,
             detail=f"Gemini stream failed: {exc}",

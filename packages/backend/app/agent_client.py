@@ -1,8 +1,21 @@
 # packages/backend/app/agent_client.py
 
+from fastapi import HTTPException
 import httpx
 from app import schemas
 from app.config import AGENT_URL, USE_MOCK_AGENT
+
+
+def _raise_for_agent_error(res: httpx.Response) -> None:
+    """Forward the agent's failure with its own explanation attached.
+
+    httpx's raise_for_status() carries only the status code, so FastAPI turns it
+    into an opaque 500 and the agent's reason (bad Gemini key, exhausted quota,
+    schema mismatch) is lost before anyone can read it.
+    """
+    if res.is_error:
+        raise HTTPException(status_code=res.status_code, detail=res.text)
+
 
 def assess_clarity(body: schemas.IntakeRequest) -> schemas.ClarityResult:
     if USE_MOCK_AGENT:
@@ -15,7 +28,7 @@ def assess_clarity(body: schemas.IntakeRequest) -> schemas.ClarityResult:
             ]
         )
     res = httpx.post(f"{AGENT_URL}/agent/clarity", json=body.model_dump(), timeout=60.0)
-    res.raise_for_status()
+    _raise_for_agent_error(res)
     return schemas.ClarityResult(**res.json())
 
 
@@ -29,7 +42,7 @@ def reassess_clarity(body: schemas.ClarityAnswersRequest) -> schemas.ClarityResu
             enriched_idea=f"{body.idea} {answers_text}"   # ← combined
         )
     res = httpx.post(f"{AGENT_URL}/agent/clarity/answers", json=body.model_dump(), timeout=60.0)
-    res.raise_for_status()
+    _raise_for_agent_error(res)
     return schemas.ClarityResult(**res.json())
 
 
@@ -41,7 +54,7 @@ def suggest_goals(body: schemas.GoalsRequest) -> schemas.GoalsResponse:
             schemas.Goal(title="Production", description="A deployable version with reliability and handoff polish.", complete_in=45),
         ])
     res = httpx.post(f"{AGENT_URL}/agent/goals", json=body.model_dump(), timeout=60.0)
-    res.raise_for_status()
+    _raise_for_agent_error(res)
     return schemas.GoalsResponse(**res.json())
 
 
@@ -82,7 +95,7 @@ def generate_plan(body: schemas.PlanRequest) -> schemas.PlanResponse:
             ]
         )
     res = httpx.post(f"{AGENT_URL}/agent/plan", json=body.model_dump(), timeout=60.0)
-    res.raise_for_status()
+    _raise_for_agent_error(res)
     return schemas.PlanResponse(**res.json())
 
 def generate_tasks(step: schemas.StepPlan, project_idea: str) -> list[schemas.SubTask]:
@@ -97,7 +110,7 @@ def generate_tasks(step: schemas.StepPlan, project_idea: str) -> list[schemas.Su
         "step_description": step.description,
         "project_idea": project_idea,
     }, timeout=60.0)
-    res.raise_for_status()
+    _raise_for_agent_error(res)
     return [schemas.SubTask(**t) for t in res.json()["tasks"]]
 
 
@@ -111,5 +124,5 @@ def summarize_chat(
         "messages": messages,
         "existing_summary": existing_summary,
     }, timeout=60.0)
-    res.raise_for_status()
+    _raise_for_agent_error(res)
     return res.json()["summary"]

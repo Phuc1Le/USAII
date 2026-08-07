@@ -7,6 +7,26 @@ type StreamChatOptions = {
   onDecision?: () => void
 }
 
+// The server's own explanation lives in the response body (FastAPI puts it in
+// `detail`). Without this the caller only ever sees the status code, which is
+// how "you are out of Gemini quota" surfaced as "the backend did not answer".
+async function apiError(res: Response): Promise<Error> {
+  let detail = ""
+  try {
+    const body = await res.text()
+    try {
+      const parsed = JSON.parse(body)
+      detail = typeof parsed?.detail === "string" ? parsed.detail : body
+    } catch {
+      detail = body
+    }
+  } catch {
+    // body already consumed or unreadable — fall back to the status alone
+  }
+  detail = detail.trim()
+  return new Error(detail ? `${res.status}: ${detail}` : `API error: ${res.status}`)
+}
+
 export async function apiFetch<T>(
   path: string,
   options?: RequestInit
@@ -15,7 +35,7 @@ export async function apiFetch<T>(
     headers: { "Content-Type": "application/json" },
     ...options,
   })
-  if (!res.ok) throw new Error(`API error: ${res.status}`)
+  if (!res.ok) throw await apiError(res)
   return res.json()
 }
 
@@ -30,7 +50,7 @@ export async function streamChat(
     signal,
   })
 
-  if (!res.ok) throw new Error(`API error: ${res.status}`)
+  if (!res.ok) throw await apiError(res)
   if (!res.body) throw new Error("Chat stream is unavailable")
 
   const reader = res.body.getReader()
