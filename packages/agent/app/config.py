@@ -54,9 +54,9 @@ def _load_settings() -> None:
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
     if not GEMINI_API_KEY and "pytest" not in sys.modules:
         raise RuntimeError("GEMINI_API_KEY is required to start the agent service")
+    # Optional: only web_search needs it, so a missing key must not take down
+    # the whole agent service (every other route works fine without it).
     SERP_API_KEY = os.environ.get("SERP_API_KEY", "")
-    if not SERP_API_KEY and "pytest" not in sys.modules:
-        raise RuntimeError("SERP_API_KEY is required to start the agent searching service")
     GEMINI_MODEL = os.environ.get("GEMINI_MODEL", GEMINI_MODEL)
     CHAT_HISTORY_LIMIT = _int_from_env("CHAT_HISTORY_LIMIT", CHAT_HISTORY_LIMIT)
     CLARITY_THRESHOLD = _float_from_env("CLARITY_THRESHOLD", CLARITY_THRESHOLD)
