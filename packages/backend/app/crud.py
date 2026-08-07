@@ -300,6 +300,28 @@ def get_decisions(db: Session, project_id: int) -> list[models.Decision]:
     ).all()
 
 
+def get_decision(db: Session, decision_id: int) -> models.Decision | None:
+    return db.query(models.Decision).filter(
+        models.Decision.id == decision_id
+    ).first()
+
+
+def update_decision_embedding(
+    db: Session,
+    decision_id: int,
+    embedding: list[float],
+) -> models.Decision | None:
+    decision = db.query(models.Decision).filter(
+        models.Decision.id == decision_id
+    ).first()
+    if not decision:
+        return None
+    decision.embedding = embedding
+    db.commit()
+    db.refresh(decision)
+    return decision
+
+
 def get_step_chat_sessions(db: Session, project_id: int) -> list[models.ChatSession]:
     return (
         db.query(models.ChatSession)

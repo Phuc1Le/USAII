@@ -113,3 +113,14 @@ def summarize_chat(
     }, timeout=60.0)
     res.raise_for_status()
     return res.json()["summary"]
+
+
+EMBEDDING_DIM = 768
+
+def embed_text(text: str) -> list[float]:
+    if USE_MOCK_AGENT:
+        # deterministic pseudo-vector so dev works without Gemini; not a real semantic embedding
+        return [(hash(f"{text}#{i}") % 1000) / 500.0 - 1.0 for i in range(EMBEDDING_DIM)]
+    res = httpx.post(f"{AGENT_URL}/agent/embed", json={"text": text}, timeout=60.0)
+    res.raise_for_status()
+    return res.json()["embedding"]

@@ -40,6 +40,18 @@ Migrations run automatically when the backend starts (`init_db()` calls `command
 To switch from SQLite to PostgreSQL, set `DATABASE_URL=postgresql://user:pass@host:5432/dbname` in
 `.env` — the same Alembic migrations work on both.
 
+### Decision embeddings (backend data maintenance)
+Decisions get a `text-embedding-004` vector in `Decision.embedding`, generated in a background task
+right after each decision is saved (intake clarifying answers and chat `DECISION:` extraction). To
+backfill rows saved before embeddings existed (or any rows whose background embed failed):
+
+```bash
+python -m app.backfill_embeddings     # postgres only; re-runnable (skips non-NULL rows)
+```
+
+The agent exposes `POST /agent/embed`; the backend proxies through it (`agent_client.embed_text`,
+with a deterministic mock branch under `USE_MOCK_AGENT`). Embedding writes are skipped on SQLite.
+
 ### Agent (`packages/agent`)
 ```bash
 uvicorn app.main:app --reload --port 8001     # run (venv must be active; requires GEMINI_API_KEY unless under pytest)

@@ -148,3 +148,12 @@ class WebSearchResultItem(BaseModel):
 class WebSearchResult(BaseModel):
     query: str
     results: list[WebSearchResultItem]
+
+
+# ── /agent/embed ─────────────────────────────────────────────────
+
+class EmbedRequest(BaseModel):
+    text: str
+
+class EmbedResponse(BaseModel):
+    embedding: list[float]

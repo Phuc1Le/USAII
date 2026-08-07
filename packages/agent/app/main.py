@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 
 from app.config import CLARITY_THRESHOLD
-from app.llm import json_call, stream_text
+from app.llm import embed_text, json_call, stream_text
 from app.prompts import (
     build_chat_prompt,
     build_clarity_answers_prompt,
@@ -20,6 +20,8 @@ from app.schemas import (
     ClarityRequest,
     ClarityResponse,
     ClarifyingQuestion,
+    EmbedRequest,
+    EmbedResponse,
     GenerateTasksRequest,
     GenerateTasksResponse,
     GoalsRequest,
@@ -109,3 +111,8 @@ def summarize_chat(body: SummaryRequest):
         build_summary_prompt(messages, body.existing_summary),
         SummaryResponse,
     )
+
+
+@app.post("/agent/embed", response_model=EmbedResponse)
+def embed(body: EmbedRequest):
+    return EmbedResponse(embedding=embed_text(body.text))

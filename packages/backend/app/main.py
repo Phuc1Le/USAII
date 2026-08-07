@@ -10,7 +10,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 import httpx
 
-from app.database import init_db, get_db, session_scope
+from app.database import init_db, get_db, session_scope, engine
 from app.config import AGENT_URL, USE_MOCK_AGENT, CHAT_SUMMARY_TRIGGER, CHAT_SUMMARY_KEEP, CHAT_SUMMARY_RE_EVERY
 from app import schemas, crud, serializers, agent_client
 
@@ -67,14 +67,20 @@ def list_projects(db: Session = Depends(get_db)):
 
 
 @app.post("/api/v1/projects", response_model=schemas.Project, status_code=201)
-def create_project(body: schemas.CreateProjectRequest, db: Session = Depends(get_db)):
+def create_project(
+    body: schemas.CreateProjectRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     # 1. save the project row
     db_project = crud.create_project(db, body)
 
     # save any answered clarifying questions as decisions now that the project has an id
     for qa in body.clarifying_answers:
         if qa.answer.strip():
-            crud.save_decision(db, db_project.id, f"Q: {qa.question}\nA: {qa.answer.strip()}")
+            decision = crud.save_decision(db, db_project.id, f"Q: {qa.question}\nA: {qa.answer.strip()}")
+            # embedding is filled in the background — see _embed_decision_in_background
+            background_tasks.add_task(_embed_decision_in_background, decision.id)
 
     # 2. ask the agent for a plan
     plan = agent_client.generate_plan(
@@ -333,8 +339,13 @@ def send_message(
             if is_decision_line(stripped):
                 content = decision_re.sub("", stripped).strip()
                 if content:
-                    crud.save_decision(db, project.id, content)
+                    decision = crud.save_decision(db, project.id, content)
                     decision_saved = True
+                    # embedding is filled in the background after the stream completes —
+                    # see _embed_decision_in_background. `background` is the same
+                    # BackgroundTasks collection FastAPI attaches to the response, so
+                    # tasks added here still run once the body is fully sent.
+                    background.add_task(_embed_decision_in_background, decision.id)
 
         if decision_saved:
             yield f"data: {json.dumps({'decision': True})}\n\n"
@@ -407,3 +418,29 @@ def _summarize_in_background(session_id: int) -> None:
             _maybe_summarize(db, session_id)
     except Exception:
         logger.exception("background summarization failed for session %s", session_id)
+
+
+def _embed_decision_in_background(decision_id: int) -> None:
+    """Fill in Decision.embedding outside the request/response cycle.
+
+    Runs after the decision row is already saved, so saving never blocks
+    on a Gemini round-trip. Opens its own DB session — the request's
+    session is already closed by the time background tasks run.
+    """
+
+    try:
+        if engine.dialect.name != "postgresql":
+            logger.info(
+                "skipping decision %s embedding: pgvector requires postgresql (dialect=%s)",
+                decision_id, engine.dialect.name,
+            )
+            return
+        with session_scope() as db:
+            decision = crud.get_decision(db, decision_id)
+            if not decision:
+                return
+            embedding = agent_client.embed_text(decision.content)
+            crud.update_decision_embedding(db, decision_id, embedding)
+    except Exception:
+        # embedding failure is non-fatal — the decision itself is already saved
+        logger.exception("embedding call failed for decision %s", decision_id)
