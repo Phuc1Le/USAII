@@ -154,6 +154,9 @@ def create_milestones_from_plan(
     db.commit()
     return db_milestones
 
+def get_milestones(db: Session, project_id: int) -> list[models.Milestone]:
+    return db.query(models.Milestone).filter(models.Milestone.project_id == project_id).all()
+
 
 def update_milestone(
     db: Session,

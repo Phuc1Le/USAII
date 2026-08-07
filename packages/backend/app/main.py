@@ -119,6 +119,12 @@ def get_step(step_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Step not found")
     return serializers.serialize_step(step)
 
+@app.get("/internal/milestones", response_model=list[schemas.Milestone])
+def get_milestones(project_id: int, db: Session = Depends(get_db)):
+    milestones = crud.get_milestones(db, project_id)
+    return [serializers.serialize_milestone(m) for m in milestones]
+
+
 @app.patch("/api/v1/steps/{step_id}", response_model=schemas.Step)
 def update_step(step_id: int, body: schemas.UpdateStepRequest, db: Session = Depends(get_db)):
     from app.models import Step as StepModel

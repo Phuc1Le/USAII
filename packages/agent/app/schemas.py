@@ -67,6 +67,10 @@ class MilestonePlan(BaseModel):
     title: str
     after_step_index: int
 
+class MilestoneContext(BaseModel):
+    title: str
+    achieved_at: str | None
+
 class PlanResponse(BaseModel):
     steps: list[StepPlan]
     milestones: list[MilestonePlan]

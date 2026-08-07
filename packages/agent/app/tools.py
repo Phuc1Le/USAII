@@ -5,6 +5,7 @@ from app.schemas import (
     WebSearchResult,
     FocusedStepContext,
     SubTaskContext,
+    MilestoneContext
 )
 
 SERP_API_URL = "https://serpapi.com/search"
@@ -56,3 +57,14 @@ async def retrieve_step(step_id: str) -> FocusedStepContext:
             for t in data["tasks"]
         ],
     )
+
+async def retrieve_milestones(project_id: str) -> list[MilestoneContext]:
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.get(f"{BACKEND_URL}/internal/milestones", params={"project_id": project_id})
+        response.raise_for_status()
+        data = response.json()
+
+    return [
+        MilestoneContext(title=m["title"], achieved_at=m["achieved_at"])
+        for m in data
+    ]
