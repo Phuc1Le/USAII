@@ -58,6 +58,15 @@ def serialize_decision(d: models.Decision) -> schemas.Decision:
     )
 
 
+def serialize_decision_hit(d: models.Decision, distance: float) -> schemas.DecisionSearchHit:
+    return schemas.DecisionSearchHit(
+        id=str(d.id),
+        content=d.content,
+        created_at=d.created_at.isoformat(),
+        score=round(1.0 - distance, 4),
+    )
+
+
 def serialize_session(
     s: models.ChatSession,
 ) -> schemas.ChatSession:

@@ -11,8 +11,8 @@ from sqlalchemy.orm import Session
 import httpx
 
 from app.database import init_db, get_db, session_scope, engine
-from app.config import AGENT_URL, USE_MOCK_AGENT, CHAT_SUMMARY_TRIGGER, CHAT_SUMMARY_KEEP, CHAT_SUMMARY_RE_EVERY
-from app import schemas, crud, serializers, agent_client
+from app.config import AGENT_URL, USE_MOCK_AGENT, CHAT_SUMMARY_TRIGGER, CHAT_SUMMARY_KEEP, CHAT_SUMMARY_RE_EVERY, DECISION_SEARCH_MIN_SCORE
+from app import schemas, crud, serializers, agent_client, models
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -129,6 +129,34 @@ def get_step(step_id: int, db: Session = Depends(get_db)):
 def get_milestones(project_id: int, db: Session = Depends(get_db)):
     milestones = crud.get_milestones(db, project_id)
     return [serializers.serialize_milestone(m) for m in milestones]
+
+
+@app.get("/internal/decisions/search", response_model=list[schemas.DecisionSearchHit])
+def search_decisions(
+    project_id: int,
+    query: str,
+    limit: int = 5,
+    min_score: float = DECISION_SEARCH_MIN_SCORE,
+    db: Session = Depends(get_db),
+):
+    if engine.dialect.name != "postgresql":
+        logger.info(
+            "skipping decision search on %s dialect (pgvector required)", engine.dialect.name
+        )
+        return []
+
+    project_exists = db.query(models.Project.id).filter(models.Project.id == project_id).first()
+    if not project_exists:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    try:
+        query_embedding = agent_client.embed_text(query)
+    except Exception:
+        logger.exception("failed to embed decision search query for project %s", project_id)
+        raise HTTPException(status_code=502, detail="Failed to embed search query")
+
+    hits = crud.search_decisions(db, project_id, query_embedding, limit, min_score)
+    return [serializers.serialize_decision_hit(d, distance) for d, distance in hits]
 
 
 @app.patch("/api/v1/steps/{step_id}", response_model=schemas.Step)

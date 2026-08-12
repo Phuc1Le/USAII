@@ -1,5 +1,6 @@
 # packages/backend/app/agent_client.py
 
+import hashlib
 import httpx
 from app import schemas
 from app.config import AGENT_URL, USE_MOCK_AGENT
@@ -115,12 +116,18 @@ def summarize_chat(
     return res.json()["summary"]
 
 
-EMBEDDING_DIM = 768
+EMBEDDING_DIM = 3072
 
 def embed_text(text: str) -> list[float]:
     if USE_MOCK_AGENT:
-        # deterministic pseudo-vector so dev works without Gemini; not a real semantic embedding
-        return [(hash(f"{text}#{i}") % 1000) / 500.0 - 1.0 for i in range(EMBEDDING_DIM)]
+        # deterministic pseudo-vector so dev works without Gemini; not a real semantic
+        # embedding. Stable hash (not Python's per-process hash()) so the same text maps
+        # to the same vector across processes/restarts.
+        digest = hashlib.sha256(text.encode("utf-8")).digest()
+        return [
+            ((digest[i % len(digest)] * 31 + i) % 1000) / 500.0 - 1.0
+            for i in range(EMBEDDING_DIM)
+        ]
     res = httpx.post(f"{AGENT_URL}/agent/embed", json={"text": text}, timeout=60.0)
     res.raise_for_status()
     return res.json()["embedding"]
