@@ -7,6 +7,7 @@ import re
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 import httpx
 
@@ -72,7 +73,20 @@ def create_project(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    # 1. save the project row
+    # 1. ask the agent for a plan FIRST — nothing is written until it succeeds.
+    # Creating the project row first would leave an orphaned, step-less project
+    # behind (and in GET /projects) every time the agent 502s.
+    plan = agent_client.generate_plan(
+        schemas.PlanRequest(
+            category=body.category,
+            description=body.description,
+            idea=body.idea,
+            goal=body.goal,
+            complete_in=body.complete_in,
+        )
+    )
+
+    # 2. save the project row
     db_project = crud.create_project(db, body)
 
     # save any answered clarifying questions as decisions now that the project has an id
@@ -81,11 +95,6 @@ def create_project(
             decision = crud.save_decision(db, db_project.id, f"Q: {qa.question}\nA: {qa.answer.strip()}")
             # embedding is filled in the background — see _embed_decision_in_background
             background_tasks.add_task(_embed_decision_in_background, decision.id)
-
-    # 2. ask the agent for a plan
-    plan = agent_client.generate_plan(
-        schemas.PlanRequest(idea=body.idea, goal=body.goal, complete_in=body.complete_in)
-    )
 
     # 3. save steps + milestones
     db_steps = crud.create_steps_from_plan(db, db_project.id, plan.steps)
@@ -161,7 +170,6 @@ def search_decisions(
 
 @app.patch("/api/v1/steps/{step_id}", response_model=schemas.Step)
 def update_step(step_id: int, body: schemas.UpdateStepRequest, db: Session = Depends(get_db)):
-    from app.models import Step as StepModel
     step = crud.update_step(db, step_id, body)
     if not step:
         raise HTTPException(status_code=404, detail="Step not found")
@@ -184,7 +192,7 @@ def get_tasks(step_id: int, db: Session = Depends(get_db)):
         return [serializers.serialize_task(t) for t in existing]
 
     # get the step so we can pass context to the agent
-    step = db.query(__import__("app.models", fromlist=["Step"]).Step).filter_by(id=step_id).first()
+    step = crud.get_step(db, step_id)
     if not step:
         raise HTTPException(status_code=404, detail="Step not found")
 
@@ -197,7 +205,16 @@ def get_tasks(step_id: int, db: Session = Depends(get_db)):
         depends_on=[],
     )
     subtasks = agent_client.generate_tasks(step_plan, step.project.idea)
-    db_tasks = crud.create_tasks_for_step(db, step_id, subtasks)
+    try:
+        db_tasks = crud.create_tasks_for_step(db, step_id, subtasks)
+    except IntegrityError:
+        # a concurrent request generated tasks for this step first (uq_tasks_step_order);
+        # its set is just as valid as ours, so drop ours and return the one that landed
+        db.rollback()
+        existing = crud.get_tasks_for_step(db, step_id)
+        if not existing:
+            raise
+        return [serializers.serialize_task(t) for t in existing]
     return [serializers.serialize_task(t) for t in db_tasks]
 
 
@@ -325,56 +342,84 @@ def send_message(
     def is_decision_line(text: str) -> bool:
         return bool(decision_re.match(text.strip()))
 
+    project_id = project.id
+
+    def persist_turn(visible_response: str, full_response: str) -> bool:
+        """Save the assistant turn and any decisions it declared.
+
+        Runs on its own DB session: the request's session belongs to the
+        request/response cycle, and this runs from inside the streaming body —
+        including from the `finally` path, after the client has disconnected.
+        """
+        if not visible_response.strip() and not full_response.strip():
+            return False
+
+        decision_saved = False
+        with session_scope() as own_db:
+            # persist only what the user saw — DECISION lines are structured data, not chat prose
+            crud.save_message(own_db, session_id, "assistant", visible_response.strip())
+
+            # extract and save any decisions from the raw response
+            for line in full_response.split("\n"):
+                stripped = line.strip()
+                if is_decision_line(stripped):
+                    content = decision_re.sub("", stripped).strip()
+                    if content:
+                        decision = crud.save_decision(own_db, project_id, content)
+                        decision_saved = True
+                        # embedding is filled in the background after the stream completes —
+                        # see _embed_decision_in_background. `background` is the same
+                        # BackgroundTasks collection FastAPI attaches to the response, so
+                        # tasks added here still run once the body is fully sent.
+                        background.add_task(_embed_decision_in_background, decision.id)
+        return decision_saved
+
     def real_stream():
         full_response = ""      # raw model output, including any DECISION lines
         visible_response = ""   # what the user actually sees / what gets persisted as the message
         line_buffer = ""
-        with httpx.stream("POST", f"{AGENT_URL}/agent/chat", json=chat_request) as r:
-            r.raise_for_status()
-            for line in r.iter_lines():
-                if line.startswith("data: "):
-                    payload = line[6:]
-                    if payload == "[DONE]":
-                        break
-                    try:
-                        token = json.loads(payload).get("content", "")
-                    except json.JSONDecodeError:
-                        token = payload
-                    if not token:
-                        continue
-                    full_response += token
-                    line_buffer += token
-                    # only forward complete lines, so a trailing DECISION line can be withheld
-                    while "\n" in line_buffer:
-                        nl_index = line_buffer.index("\n")
-                        complete_line = line_buffer[:nl_index + 1]
-                        line_buffer = line_buffer[nl_index + 1:]
-                        if not is_decision_line(complete_line):
-                            visible_response += complete_line
-                            yield f"data: {json.dumps({'content': complete_line})}\n\n"
+        # a long answer can take well over httpx's 5s default before the first token
+        # arrives; without this the stream dies mid-sentence on slow turns
+        timeout = httpx.Timeout(180.0, connect=10.0)
+        try:
+            with httpx.stream("POST", f"{AGENT_URL}/agent/chat", json=chat_request, timeout=timeout) as r:
+                r.raise_for_status()
+                for line in r.iter_lines():
+                    if line.startswith("data: "):
+                        payload = line[6:]
+                        if payload == "[DONE]":
+                            break
+                        try:
+                            token = json.loads(payload).get("content", "")
+                        except json.JSONDecodeError:
+                            token = payload
+                        if not token:
+                            continue
+                        full_response += token
+                        line_buffer += token
+                        # only forward complete lines, so a trailing DECISION line can be withheld
+                        while "\n" in line_buffer:
+                            nl_index = line_buffer.index("\n")
+                            complete_line = line_buffer[:nl_index + 1]
+                            line_buffer = line_buffer[nl_index + 1:]
+                            if not is_decision_line(complete_line):
+                                visible_response += complete_line
+                                yield f"data: {json.dumps({'content': complete_line})}\n\n"
 
-            if line_buffer and not is_decision_line(line_buffer):
-                visible_response += line_buffer
-                yield f"data: {json.dumps({'content': line_buffer})}\n\n"
+                if line_buffer and not is_decision_line(line_buffer):
+                    visible_response += line_buffer
+                    yield f"data: {json.dumps({'content': line_buffer})}\n\n"
+        finally:
+            # in `finally` so a client disconnect (or an agent error mid-stream) still
+            # persists whatever was generated — otherwise the turn vanishes from history
+            # and the next request rebuilds context without it
+            try:
+                decision_saved = persist_turn(visible_response, full_response)
+            except Exception:
+                logger.exception("failed to persist assistant turn for session %s", session_id)
+                decision_saved = False
 
-        # persist only what the user saw — DECISION lines are structured data, not chat prose
-        crud.save_message(db, session_id, "assistant", visible_response.strip())
-
-        # extract and save any decisions from the raw response
-        decision_saved = False
-        for line in full_response.split("\n"):
-            stripped = line.strip()
-            if is_decision_line(stripped):
-                content = decision_re.sub("", stripped).strip()
-                if content:
-                    decision = crud.save_decision(db, project.id, content)
-                    decision_saved = True
-                    # embedding is filled in the background after the stream completes —
-                    # see _embed_decision_in_background. `background` is the same
-                    # BackgroundTasks collection FastAPI attaches to the response, so
-                    # tasks added here still run once the body is fully sent.
-                    background.add_task(_embed_decision_in_background, decision.id)
-
+        # only reached on a clean finish — a disconnected client cannot be yielded to
         if decision_saved:
             yield f"data: {json.dumps({'decision': True})}\n\n"
 

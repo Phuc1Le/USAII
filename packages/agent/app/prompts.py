@@ -83,6 +83,32 @@ def _category_guidance(category: str | None) -> str:
     )
 
 
+def _plan_category_steps(category: str | None) -> str:
+    """Which concrete step types a plan in this category should cover.
+
+    Separate from _category_guidance: that one says what to *think about*, this one
+    says what work must actually appear as steps. Only the matching category is
+    injected — sending all ten buries the one that applies in nine that don't.
+    """
+    step_map = {
+        "technology": "architecture decisions, prototyping, testing, deployment, and iteration planning",
+        "social media": "positioning, content planning, launch sequence, community engagement, and analytics review",
+        "business": "market validation, ops setup, customer acquisition, and revenue model validation",
+        "education": "curriculum design, learning flow, accessibility review, assessment setup, and rollout",
+        "health": "safety review, privacy review, workflow validation, testing, and compliance checkpoints",
+        "finance": "trust controls, regulatory checks, security review, financial logic validation, and auditability",
+        "creative arts": "concept development, production planning, review cycles, and distribution",
+        "community": "onboarding, moderation setup, feedback loops, and member retention plans",
+        "productivity": "workflow mapping, usability testing, integration setup, and adoption tracking",
+        "sustainability": "impact measurement, resource planning, stakeholder engagement, and long-term monitoring",
+    }
+
+    covered = step_map.get(_normalize_category(category))
+    if not covered:
+        return "Cover the discovery, build, validation, and delivery work this domain actually requires."
+    return f"The plan must include steps covering {covered}."
+
+
 def _build_prompt(
     task: str,
     payload: dict,
@@ -174,12 +200,13 @@ def build_goals_prompt(body: GoalsRequest) -> str:
 
 def build_plan_prompt(body: PlanRequest) -> str:
     return _build_prompt(
-        """
+        f"""
         Turn the idea and selected goal into a realistic project plan.
         Generate a practical sequence of steps and milestones that progress from discovery to delivery.
         Make the steps logically ordered, time-boxed, and dependency-aware.
         The plan must be completed within the number of days given by the "complete_in" field in the input payload. All step dates must fit inside that window starting from today.
-        Tailor the plan to the category: for technology, include architecture decisions, prototyping, testing, deployment, and iteration planning; for social media, include positioning, content planning, launch sequence, community engagement, and analytics review; for business, include market validation, ops setup, customer acquisition, and revenue model validation; for education, include curriculum design, learning flow, accessibility review, assessment setup, and rollout; for health, include safety review, privacy review, workflow validation, testing, and compliance checkpoints; for finance, include trust controls, regulatory checks, security review, financial logic validation, and auditability; for creative arts, include concept development, production planning, review cycles, and distribution; for community, include onboarding, moderation setup, feedback loops, and member retention plans; for productivity, include workflow mapping, usability testing, integration setup, and adoption tracking; for sustainability, include impact measurement, resource planning, stakeholder engagement, and long-term monitoring.
+        {_plan_category_steps(body.category)}
+        Ground every step in the specifics of this idea and description — a step that would read the same for any other project in this category is not specific enough.
         Use dates in YYYY-MM-DD format.
         Keep the plan specific enough to be actionable but concise enough to be read quickly.
         The JSON must contain exactly:

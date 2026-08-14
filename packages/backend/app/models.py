@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    Column, Integer, String, Text, DateTime, ForeignKey
+    Column, Integer, String, Text, DateTime, ForeignKey, UniqueConstraint
 )
 from sqlalchemy.orm import DeclarativeBase, relationship
 from datetime import datetime, timezone
@@ -64,6 +64,11 @@ class StepDependency(Base):
 
 class Task(Base):
     __tablename__ = "tasks"
+    # tasks are generated lazily on first read of a step; two concurrent readers
+    # would otherwise both find the step empty and both insert a full set
+    __table_args__ = (
+        UniqueConstraint("step_id", "order_index", name="uq_tasks_step_order"),
+    )
 
     id = Column(Integer, primary_key=True)
     step_id = Column(Integer, ForeignKey("steps.id"), nullable=False)
