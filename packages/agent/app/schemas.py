@@ -148,3 +148,25 @@ class WebSearchResultItem(BaseModel):
 class WebSearchResult(BaseModel):
     query: str
     results: list[WebSearchResultItem]
+
+
+# ── /agent/embed ─────────────────────────────────────────────────
+
+class EmbedRequest(BaseModel):
+    text: str
+
+class EmbedResponse(BaseModel):
+    embedding: list[float]
+
+
+# ── query_decisions tool ─────────────────────────────────────────
+
+class DecisionSearchHit(BaseModel):
+    id: str
+    content: str
+    created_at: str
+    score: float
+
+class DecisionSearchResult(BaseModel):
+    query: str
+    hits: list[DecisionSearchHit]

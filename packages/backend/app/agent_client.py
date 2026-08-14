@@ -1,5 +1,7 @@
 # packages/backend/app/agent_client.py
 
+import hashlib
+
 from fastapi import HTTPException
 import httpx
 from app import schemas
@@ -126,3 +128,20 @@ def summarize_chat(
     }, timeout=60.0)
     _raise_for_agent_error(res)
     return res.json()["summary"]
+
+
+EMBEDDING_DIM = 3072
+
+def embed_text(text: str) -> list[float]:
+    if USE_MOCK_AGENT:
+        # deterministic pseudo-vector so dev works without Gemini; not a real semantic
+        # embedding. Stable hash (not Python's per-process hash()) so the same text maps
+        # to the same vector across processes/restarts.
+        digest = hashlib.sha256(text.encode("utf-8")).digest()
+        return [
+            ((digest[i % len(digest)] * 31 + i) % 1000) / 500.0 - 1.0
+            for i in range(EMBEDDING_DIM)
+        ]
+    res = httpx.post(f"{AGENT_URL}/agent/embed", json={"text": text}, timeout=60.0)
+    _raise_for_agent_error(res)
+    return res.json()["embedding"]

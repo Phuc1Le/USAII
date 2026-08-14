@@ -123,6 +123,12 @@ class Decision(BaseModel):
     content: str
     created_at: str   # ISO datetime string
 
+class DecisionSearchHit(BaseModel):
+    id: str
+    content: str
+    created_at: str   # ISO datetime string
+    score: float      # cosine similarity, 0..1 (higher = more relevant)
+
 # ── Chat ─────────────────────────────────────────────────────────
 
 class OpenSessionRequest(BaseModel):

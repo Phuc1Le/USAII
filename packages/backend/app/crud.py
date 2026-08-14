@@ -300,6 +300,54 @@ def get_decisions(db: Session, project_id: int) -> list[models.Decision]:
     ).all()
 
 
+def get_decision(db: Session, decision_id: int) -> models.Decision | None:
+    return db.query(models.Decision).filter(
+        models.Decision.id == decision_id
+    ).first()
+
+
+def update_decision_embedding(
+    db: Session,
+    decision_id: int,
+    embedding: list[float],
+) -> models.Decision | None:
+    decision = db.query(models.Decision).filter(
+        models.Decision.id == decision_id
+    ).first()
+    if not decision:
+        return None
+    decision.embedding = embedding
+    db.commit()
+    db.refresh(decision)
+    return decision
+
+
+def search_decisions(
+    db: Session,
+    project_id: int,
+    query_embedding: list[float],
+    limit: int,
+    min_score: float,
+) -> list[tuple[models.Decision, float]]:
+    """Cosine-similarity search over a project's embedded decisions.
+
+    Returns (decision, cosine_distance).
+    """
+    distance = models.Decision.embedding.cosine_distance(query_embedding)
+    rows = (
+        db.query(models.Decision, distance.label("distance"))
+        .filter(
+            models.Decision.project_id == project_id,
+            models.Decision.embedding.isnot(None),
+            distance <= (1.0 - min_score),
+        )
+        .order_by(distance)
+        .limit(limit)
+        .all()
+    )
+    return [(d, dist) for d, dist in rows]
+
+
 def get_step_chat_sessions(db: Session, project_id: int) -> list[models.ChatSession]:
     return (
         db.query(models.ChatSession)

@@ -8,9 +8,10 @@ services:
     environment:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL}
       SERP_API_KEY: ${SERP_API_KEY:-}
       # inside the compose network the backend is "backend", not "localhost"
-      BACKEND_URL: http://backend:8000
+      BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
       CHAT_HISTORY_LIMIT: ${CHAT_HISTORY_LIMIT}
       CLARITY_THRESHOLD: ${CLARITY_THRESHOLD}
       CHAT_SUMMARY_TRIGGER: ${CHAT_SUMMARY_TRIGGER}
@@ -45,7 +46,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped

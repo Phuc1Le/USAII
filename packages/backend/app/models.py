@@ -123,7 +123,7 @@ class Decision(Base):
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     content = Column(Text, nullable=False)
-    embedding = Column(Vector(768), nullable=True)
+    embedding = Column(Vector(3072), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     project = relationship("Project", back_populates="decisions")

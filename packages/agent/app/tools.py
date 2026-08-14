@@ -5,7 +5,9 @@ from app.schemas import (
     WebSearchResult,
     FocusedStepContext,
     SubTaskContext,
-    MilestoneContext
+    MilestoneContext,
+    DecisionSearchHit,
+    DecisionSearchResult,
 )
 
 SERP_API_URL = "https://serpapi.com/search"
@@ -73,3 +75,17 @@ async def retrieve_milestones(project_id: str) -> list[MilestoneContext]:
         MilestoneContext(title=m["title"], achieved_at=m["achieved_at"])
         for m in data
     ]
+
+async def query_decisions(project_id: str, query: str, limit: int = 5) -> DecisionSearchResult:
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.get(
+            f"{BACKEND_URL}/internal/decisions/search",
+            params={"project_id": project_id, "query": query, "limit": limit},
+        )
+        response.raise_for_status()
+        data = response.json()
+
+    return DecisionSearchResult(
+        query=query,
+        hits=[DecisionSearchHit(**h) for h in data],
+    )

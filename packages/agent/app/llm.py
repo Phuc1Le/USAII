@@ -7,7 +7,7 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel
 
-from app.config import GEMINI_API_KEY, GEMINI_MODEL
+from app.config import EMBEDDING_MODEL, GEMINI_API_KEY, GEMINI_MODEL
 
 
 logger = logging.getLogger(__name__)
@@ -68,4 +68,18 @@ def stream_text(
         raise HTTPException(
             status_code=502,
             detail=f"Gemini stream failed: {exc}",
+        ) from exc
+
+
+def embed_text(text: str) -> list[float]:
+    try:
+        response = _client.models.embed_content(
+            model=EMBEDDING_MODEL,
+            contents=text,
+        )
+        return list(response.embeddings[0].values)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Gemini embedding call failed: {exc}",
         ) from exc
