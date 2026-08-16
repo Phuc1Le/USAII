@@ -20,6 +20,9 @@ CHAT_SUMMARY_TRIGGER = 6
 CHAT_SUMMARY_KEEP = 3
 CHAT_SUMMARY_RE_EVERY = 2
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
+# Sent as X-Internal-Token on every backend /internal/* call. Must match the
+# backend's INTERNAL_API_TOKEN; empty means the backend has it disabled too.
+INTERNAL_API_TOKEN = os.environ.get("INTERNAL_API_TOKEN", "")
 
 def _int_from_env(name: str, default: int) -> int:
     import os

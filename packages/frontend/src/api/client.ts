@@ -1,5 +1,31 @@
 const BASE_URL = "http://localhost:8000/api/v1"
 
+const CLIENT_KEY_STORAGE = "zero-to-one:client-key"
+
+// Who the backend thinks we are. Generated here and kept in localStorage — not
+// sessionStorage — so it survives closing the tab; a new key would look like a
+// brand new person with no projects. This identifies, it does not authenticate:
+// anyone can send someone else's key, which is why it is not protecting anything
+// that actually needs protecting.
+function getClientKey(): string {
+  let key = localStorage.getItem(CLIENT_KEY_STORAGE)
+  if (!key) {
+    key =
+      typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `k-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    localStorage.setItem(CLIENT_KEY_STORAGE, key)
+  }
+  return key
+}
+
+function defaultHeaders(): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    "X-User-Id": getClientKey(),
+  }
+}
+
 type StreamChatOptions = {
   content: string
   signal?: AbortSignal
@@ -32,8 +58,10 @@ export async function apiFetch<T>(
   options?: RequestInit
 ): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
     ...options,
+    // headers last: spreading `options` after them let a caller-supplied `headers`
+    // silently drop Content-Type (and now X-User-Id) instead of adding to it
+    headers: { ...defaultHeaders(), ...options?.headers },
   })
   if (!res.ok) throw await apiError(res)
   return res.json()
@@ -45,7 +73,7 @@ export async function streamChat(
 ): Promise<void> {
   const res = await fetch(`${BASE_URL}/chat/sessions/${sessionId}/messages`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: defaultHeaders(),
     body: JSON.stringify({ content }),
     signal,
   })

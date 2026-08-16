@@ -24,10 +24,26 @@ from fastapi.testclient import TestClient  # noqa: E402
 from app.main import app  # noqa: E402
 
 
+DEFAULT_CLIENT_KEY = "test-default-user"
+
+
 @pytest.fixture(scope="session")
 def client():
+    """A client that is always someone.
+
+    Every project route needs X-User-Id, and tests that are not about ownership
+    should not have to care — so the header is set once here, exactly like the
+    frontend sets it once in api/client.ts.
+    """
     # entering the context manager runs the lifespan, so init_db() applies every
     # Alembic migration to the fresh test database — the migrations are under test too
+    with TestClient(app, headers={"X-User-Id": DEFAULT_CLIENT_KEY}) as test_client:
+        yield test_client
+
+
+@pytest.fixture(scope="session")
+def anon_client():
+    """A client that sends no identity — for testing what happens without one."""
     with TestClient(app) as test_client:
         yield test_client
 

@@ -4,7 +4,8 @@ from contextlib import asynccontextmanager
 import json
 import logging
 import re
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
+import secrets
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sqlalchemy.exc import IntegrityError
@@ -12,28 +13,39 @@ from sqlalchemy.orm import Session
 import httpx
 
 from app.database import init_db, get_db, session_scope, engine
-from app.config import AGENT_URL, USE_MOCK_AGENT, CHAT_SUMMARY_TRIGGER, CHAT_SUMMARY_KEEP, CHAT_SUMMARY_RE_EVERY, DECISION_SEARCH_MIN_SCORE
+from app.config import (
+    AGENT_URL,
+    ALLOWED_ORIGINS,
+    USE_MOCK_AGENT,
+    CHAT_SUMMARY_TRIGGER,
+    CHAT_SUMMARY_KEEP,
+    CHAT_SUMMARY_RE_EVERY,
+    DECISION_SEARCH_MIN_SCORE,
+    INTERNAL_API_TOKEN,
+)
 from app import schemas, crud, serializers, agent_client, models
+from app.auth import get_current_user
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
+    if not INTERNAL_API_TOKEN:
+        logger.warning(
+            "INTERNAL_API_TOKEN is not set — /internal/* routes are unauthenticated. "
+            "Set it in .env (same value for the backend and the agent) before deploying."
+        )
     yield
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 app = FastAPI(title="Zero to One API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -63,8 +75,11 @@ def get_goals(body: schemas.GoalsRequest):
 # ── Projects ──────────────────────────────────────────────────────
 
 @app.get("/api/v1/projects", response_model=list[schemas.Project])
-def list_projects(db: Session = Depends(get_db)):
-    return [serializers.serialize_project(p) for p in crud.get_all_projects(db)]
+def list_projects(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    return [serializers.serialize_project(p) for p in crud.get_all_projects(db, user.id)]
 
 
 @app.post("/api/v1/projects", response_model=schemas.Project, status_code=201)
@@ -72,6 +87,7 @@ def create_project(
     body: schemas.CreateProjectRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
 ):
     # 1. ask the agent for a plan FIRST — nothing is written until it succeeds.
     # Creating the project row first would leave an orphaned, step-less project
@@ -87,7 +103,7 @@ def create_project(
     )
 
     # 2. save the project row
-    db_project = crud.create_project(db, body)
+    db_project = crud.create_project(db, body, user.id)
 
     # save any answered clarifying questions as decisions now that the project has an id
     for qa in body.clarifying_answers:
@@ -106,41 +122,84 @@ def create_project(
 
 
 @app.patch("/api/v1/projects/{project_id}", response_model=schemas.Project)
-def update_project(project_id: int, body: schemas.UpdateProjectRequest, db: Session = Depends(get_db)):
-    project = crud.update_project(db, project_id, body)
+def update_project(
+    project_id: int,
+    body: schemas.UpdateProjectRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    project = crud.update_project(db, project_id, body, user.id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return serializers.serialize_project(project)
 
 
 @app.get("/api/v1/projects/{project_id}", response_model=schemas.Project)
-def get_project(project_id: int, db: Session = Depends(get_db)):
-    db_project = crud.get_project(db, project_id)
+def get_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    db_project = crud.get_project(db, project_id, user.id)
     if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
     return serializers.serialize_project(db_project)
 
 
 @app.get("/api/v1/projects/{project_id}/decisions", response_model=list[schemas.Decision])
-def list_decisions(project_id: int, db: Session = Depends(get_db)):
+def list_decisions(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    # the decisions themselves are not owned, the project is — so prove ownership
+    # of the project before handing any of them over
+    if not crud.get_project(db, project_id, user.id):
+        raise HTTPException(status_code=404, detail="Project not found")
     return [serializers.serialize_decision(d) for d in crud.get_decisions(db, project_id)]
 
 
-# ── Steps / Tasks ─────────────────────────────────────────────────
-@app.get("/internal/steps/{step_id}", response_model=schemas.Step)
+# ── Internal (agent-only) ─────────────────────────────────────────
+# These routes hand out project data with no user scoping, so they are meant to be
+# reachable only by the agent service. They live on the same app as the public API,
+# which means "not routed to the internet" is not something we can assume.
+
+def require_internal_token(x_internal_token: str | None = Header(default=None)) -> None:
+    if not INTERNAL_API_TOKEN:
+        # not configured: startup already logged a warning — see lifespan()
+        return
+    # compare_digest, not ==, so a wrong token can't be recovered byte by byte
+    # from how long the comparison took
+    if not x_internal_token or not secrets.compare_digest(x_internal_token, INTERNAL_API_TOKEN):
+        raise HTTPException(status_code=403, detail="Invalid or missing internal token")
+
+
+@app.get(
+    "/internal/steps/{step_id}",
+    response_model=schemas.Step,
+    dependencies=[Depends(require_internal_token)],
+)
 def get_step(step_id: int, db: Session = Depends(get_db)):
     step = crud.get_step(db, step_id)
     if not step:
         raise HTTPException(status_code=404, detail="Step not found")
     return serializers.serialize_step(step)
 
-@app.get("/internal/milestones", response_model=list[schemas.Milestone])
+@app.get(
+    "/internal/milestones",
+    response_model=list[schemas.Milestone],
+    dependencies=[Depends(require_internal_token)],
+)
 def get_milestones(project_id: int, db: Session = Depends(get_db)):
     milestones = crud.get_milestones(db, project_id)
     return [serializers.serialize_milestone(m) for m in milestones]
 
 
-@app.get("/internal/decisions/search", response_model=list[schemas.DecisionSearchHit])
+@app.get(
+    "/internal/decisions/search",
+    response_model=list[schemas.DecisionSearchHit],
+    dependencies=[Depends(require_internal_token)],
+)
 def search_decisions(
     project_id: int,
     query: str,

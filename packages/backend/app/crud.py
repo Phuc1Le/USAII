@@ -10,9 +10,12 @@ from app import schemas
 
 # ── Projects ─────────────────────────────────────────────────────
 
-def create_project(db: Session, body: schemas.CreateProjectRequest) -> models.Project:
-    count = db.query(models.Project).count()
+def create_project(db: Session, body: schemas.CreateProjectRequest, user_id: int) -> models.Project:
+    # numbered per owner, so the first project someone creates is "Project 1"
+    # for them regardless of how many other people's projects already exist
+    count = db.query(models.Project).filter(models.Project.user_id == user_id).count()
     project = models.Project(
+        user_id=user_id,
         title=f"Project {count + 1}",
         category=body.category,
         description=body.description,
@@ -26,10 +29,12 @@ def create_project(db: Session, body: schemas.CreateProjectRequest) -> models.Pr
     return project
 
 
-def get_project(db: Session, project_id: int) -> models.Project | None:
+def get_project(db: Session, project_id: int, user_id: int) -> models.Project | None:
+    # user_id is part of the lookup, not a check afterwards: someone else's project
+    # must be indistinguishable from one that does not exist
     return (
         db.query(models.Project)
-        .filter(models.Project.id == project_id)
+        .filter(models.Project.id == project_id, models.Project.user_id == user_id)
         .options(
             selectinload(models.Project.steps).selectinload(models.Step.tasks),
             selectinload(models.Project.steps).selectinload(models.Step.dependencies),
@@ -39,9 +44,10 @@ def get_project(db: Session, project_id: int) -> models.Project | None:
     )
 
 
-def get_all_projects(db: Session) -> list[models.Project]:
+def get_all_projects(db: Session, user_id: int) -> list[models.Project]:
     return (
         db.query(models.Project)
+        .filter(models.Project.user_id == user_id)
         .options(
             selectinload(models.Project.steps).selectinload(models.Step.tasks),
             selectinload(models.Project.steps).selectinload(models.Step.dependencies),
@@ -52,10 +58,15 @@ def get_all_projects(db: Session) -> list[models.Project]:
     )
 
 
-def update_project(db: Session, project_id: int, body: schemas.UpdateProjectRequest) -> models.Project | None:
+def update_project(
+    db: Session,
+    project_id: int,
+    body: schemas.UpdateProjectRequest,
+    user_id: int,
+) -> models.Project | None:
     project = (
         db.query(models.Project)
-        .filter(models.Project.id == project_id)
+        .filter(models.Project.id == project_id, models.Project.user_id == user_id)
         .options(
             selectinload(models.Project.steps).selectinload(models.Step.tasks),
             selectinload(models.Project.steps).selectinload(models.Step.dependencies),

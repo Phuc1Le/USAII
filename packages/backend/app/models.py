@@ -10,10 +10,35 @@ class Base(DeclarativeBase):
     pass
 
 
+class User(Base):
+    """Who owns a project.
+
+    Deliberately has no email or password yet: identity currently comes from an
+    X-User-Id header the client sends, which separates people's data but does not
+    prove who they are. Adding real login later means adding columns here and
+    changing where get_current_user reads the id from — no data migration, and
+    nothing that already filters by user_id has to change.
+    """
+
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    # what the client sends as X-User-Id: an opaque value it generated and stored
+    # itself, so it never has to ask the backend who it is. Replaced by the subject
+    # of a verified token once real login exists.
+    client_key = Column(String, nullable=False, unique=True)
+    # a name the person can read, e.g. "local-dev" — not used for lookups
+    display_name = Column(String, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    projects = relationship("Project", back_populates="user")
+
+
 class Project(Base):
     __tablename__ = "projects"
 
     id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     title = Column(String, nullable=False)
     category = Column(String, nullable=False)
     description = Column(Text, nullable=False)
@@ -23,6 +48,7 @@ class Project(Base):
     status = Column(String, nullable=False, default="intake")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+    user = relationship("User", back_populates="projects")
     steps = relationship("Step", back_populates="project", cascade="all, delete-orphan")
     milestones = relationship("Milestone", back_populates="project", cascade="all, delete-orphan")
     chat_sessions = relationship("ChatSession", back_populates="project", cascade="all, delete-orphan")

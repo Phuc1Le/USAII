@@ -1,5 +1,5 @@
 import httpx
-from app.config import SERP_API_KEY, BACKEND_URL
+from app.config import SERP_API_KEY, BACKEND_URL, INTERNAL_API_TOKEN
 from app.schemas import (
     WebSearchResultItem,
     WebSearchResult,
@@ -43,8 +43,17 @@ async def web_search(query: str, num_results: int = 5) -> WebSearchResult:
     )
 
 
+def _internal_headers() -> dict[str, str]:
+    """Auth header for the backend's /internal/* routes.
+
+    Empty when no token is configured, which matches the backend leaving those
+    routes open — the two sides are driven by the same env var.
+    """
+    return {"X-Internal-Token": INTERNAL_API_TOKEN} if INTERNAL_API_TOKEN else {}
+
+
 async def retrieve_step(step_id: str) -> FocusedStepContext:
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with httpx.AsyncClient(timeout=10.0, headers=_internal_headers()) as client:
         response = await client.get(f"{BACKEND_URL}/internal/steps/{step_id}")
         response.raise_for_status()
         data = response.json()
@@ -66,7 +75,7 @@ async def retrieve_step(step_id: str) -> FocusedStepContext:
     )
 
 async def retrieve_milestones(project_id: str) -> list[MilestoneContext]:
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with httpx.AsyncClient(timeout=10.0, headers=_internal_headers()) as client:
         response = await client.get(f"{BACKEND_URL}/internal/milestones", params={"project_id": project_id})
         response.raise_for_status()
         data = response.json()
@@ -77,7 +86,7 @@ async def retrieve_milestones(project_id: str) -> list[MilestoneContext]:
     ]
 
 async def query_decisions(project_id: str, query: str, limit: int = 5) -> DecisionSearchResult:
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with httpx.AsyncClient(timeout=10.0, headers=_internal_headers()) as client:
         response = await client.get(
             f"{BACKEND_URL}/internal/decisions/search",
             params={"project_id": project_id, "query": query, "limit": limit},
