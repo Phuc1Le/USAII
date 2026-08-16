@@ -125,7 +125,30 @@ def create_steps_from_plan(
     db.commit()
     return db_steps
 
+def get_owned_step(db: Session, step_id: int, user_id: int) -> models.Step | None:
+    """A step, but only if the caller owns the project it belongs to.
+
+    Steps carry no user_id of their own — ownership lives one table up, on the
+    project. The join walks Step -> Project so a single query answers both
+    "does this step exist" and "is it theirs", and someone else's step comes
+    back as None, indistinguishable from one that never existed.
+    """
+    return (
+        db.query(models.Step)
+        .join(models.Project, models.Step.project_id == models.Project.id)
+        .filter(models.Step.id == step_id, models.Project.user_id == user_id)
+        .options(
+            selectinload(models.Step.tasks),
+            selectinload(models.Step.dependencies),
+            selectinload(models.Step.milestone),
+        )
+        .first()
+    )
+
+
 def get_step(db: Session, step_id: int) -> models.Step | None:
+    # unscoped on purpose: only /internal/* uses this, and that is gated by the
+    # shared agent token instead — see require_internal_token in main.py
     step = (db.query(models.Step)
             .filter(models.Step.id == step_id)
             .options(
@@ -173,8 +196,14 @@ def update_milestone(
     db: Session,
     milestone_id: int,
     body: schemas.UpdateMilestoneRequest,
+    user_id: int,
 ) -> models.Milestone | None:
-    milestone = db.query(models.Milestone).filter(models.Milestone.id == milestone_id).first()
+    milestone = (
+        db.query(models.Milestone)
+        .join(models.Project, models.Milestone.project_id == models.Project.id)
+        .filter(models.Milestone.id == milestone_id, models.Project.user_id == user_id)
+        .first()
+    )
     if not milestone:
         return None
     if body.achieved is not None:
@@ -208,8 +237,18 @@ def create_tasks_for_step(
     return db_tasks
 
 
-def update_step(db: Session, step_id: int, body: schemas.UpdateStepRequest) -> models.Step | None:
-    step = db.query(models.Step).filter(models.Step.id == step_id).first()
+def update_step(
+    db: Session,
+    step_id: int,
+    body: schemas.UpdateStepRequest,
+    user_id: int,
+) -> models.Step | None:
+    step = (
+        db.query(models.Step)
+        .join(models.Project, models.Step.project_id == models.Project.id)
+        .filter(models.Step.id == step_id, models.Project.user_id == user_id)
+        .first()
+    )
     if not step:
         return None
     if body.status is not None:
@@ -232,9 +271,16 @@ def update_task(
     db: Session,
     task_id: int,
     body: schemas.UpdateTaskRequest,
+    user_id: int,
 ) -> models.Task | None:
-
-    task = db.query(models.Task).filter(models.Task.id == task_id).first()
+    # two joins: a task's owner is two tables away (Task -> Step -> Project)
+    task = (
+        db.query(models.Task)
+        .join(models.Step, models.Task.step_id == models.Step.id)
+        .join(models.Project, models.Step.project_id == models.Project.id)
+        .filter(models.Task.id == task_id, models.Project.user_id == user_id)
+        .first()
+    )
     if not task:
         return None
     if body.status is not None:
@@ -275,9 +321,20 @@ def get_or_create_session(
 
 
 def get_session(db: Session, session_id: int) -> models.ChatSession | None:
+    # unscoped: also called from the summarization background task, which runs
+    # with no request and therefore no user — routes must use get_owned_session
     return db.query(models.ChatSession).filter(
         models.ChatSession.id == session_id
     ).first()
+
+
+def get_owned_session(db: Session, session_id: int, user_id: int) -> models.ChatSession | None:
+    return (
+        db.query(models.ChatSession)
+        .join(models.Project, models.ChatSession.project_id == models.Project.id)
+        .filter(models.ChatSession.id == session_id, models.Project.user_id == user_id)
+        .first()
+    )
 
 
 def save_message(

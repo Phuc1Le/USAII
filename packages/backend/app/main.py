@@ -228,32 +228,48 @@ def search_decisions(
 
 
 @app.patch("/api/v1/steps/{step_id}", response_model=schemas.Step)
-def update_step(step_id: int, body: schemas.UpdateStepRequest, db: Session = Depends(get_db)):
-    step = crud.update_step(db, step_id, body)
+def update_step(
+    step_id: int,
+    body: schemas.UpdateStepRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    step = crud.update_step(db, step_id, body, user.id)
     if not step:
         raise HTTPException(status_code=404, detail="Step not found")
     return serializers.serialize_step(step)
 
 
 @app.patch("/api/v1/milestones/{milestone_id}", response_model=schemas.Milestone)
-def update_milestone(milestone_id: int, body: schemas.UpdateMilestoneRequest, db: Session = Depends(get_db)):
-    milestone = crud.update_milestone(db, milestone_id, body)
+def update_milestone(
+    milestone_id: int,
+    body: schemas.UpdateMilestoneRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    milestone = crud.update_milestone(db, milestone_id, body, user.id)
     if not milestone:
         raise HTTPException(status_code=404, detail="Milestone not found")
     return serializers.serialize_milestone(milestone)
 
 
 @app.get("/api/v1/steps/{step_id}/tasks", response_model=list[schemas.Task])
-def get_tasks(step_id: int, db: Session = Depends(get_db)):
+def get_tasks(
+    step_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    # ownership first: the early return below hands back existing tasks without
+    # ever loading the step, so checking any later would let someone else's
+    # already-generated tasks straight out
+    step = crud.get_owned_step(db, step_id, user.id)
+    if not step:
+        raise HTTPException(status_code=404, detail="Step not found")
+
     # lazy generation: if no tasks exist yet, ask the agent to generate them
     existing = crud.get_tasks_for_step(db, step_id)
     if existing:
         return [serializers.serialize_task(t) for t in existing]
-
-    # get the step so we can pass context to the agent
-    step = crud.get_step(db, step_id)
-    if not step:
-        raise HTTPException(status_code=404, detail="Step not found")
 
     step_plan = schemas.StepPlan(
         title=step.title,
@@ -278,8 +294,13 @@ def get_tasks(step_id: int, db: Session = Depends(get_db)):
 
 
 @app.patch("/api/v1/tasks/{task_id}", response_model=schemas.Task)
-def update_task(task_id: int, body: schemas.UpdateTaskRequest, db: Session = Depends(get_db)):
-    task = crud.update_task(db, task_id, body)
+def update_task(
+    task_id: int,
+    body: schemas.UpdateTaskRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    task = crud.update_task(db, task_id, body, user.id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return serializers.serialize_task(task)
@@ -288,7 +309,16 @@ def update_task(task_id: int, body: schemas.UpdateTaskRequest, db: Session = Dep
 # ── Chat ──────────────────────────────────────────────────────────
 
 @app.post("/api/v1/chat/sessions", response_model=schemas.ChatSession)
-def open_session(body: schemas.OpenSessionRequest, db: Session = Depends(get_db)):
+def open_session(
+    body: schemas.OpenSessionRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    # the project id comes from the request body here, not the path — check it
+    # before creating anything, or opening a session would be a way to attach a
+    # conversation to someone else's project
+    if not crud.get_project(db, body.project_id, user.id):
+        raise HTTPException(status_code=404, detail="Project not found")
     session = crud.get_or_create_session(db, body)
     return serializers.serialize_session(session)
 
@@ -298,9 +328,10 @@ def send_message(
     session_id: int,
     body: schemas.SendMessageRequest,
     background: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
 ):
-    session = crud.get_session(db, session_id)
+    session = crud.get_owned_session(db, session_id, user.id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
