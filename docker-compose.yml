@@ -8,6 +8,8 @@ services:
     environment:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL}
+      SERP_API_KEY: ${SERP_API_KEY:-}
+      # inside the compose network the backend is "backend", not "localhost"
       EMBEDDING_MODEL: ${EMBEDDING_MODEL}
       BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
       CHAT_HISTORY_LIMIT: ${CHAT_HISTORY_LIMIT}

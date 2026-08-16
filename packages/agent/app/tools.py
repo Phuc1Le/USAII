@@ -13,6 +13,11 @@ from app.schemas import (
 SERP_API_URL = "https://serpapi.com/search"
 
 async def web_search(query: str, num_results: int = 5) -> WebSearchResult:
+    if not SERP_API_KEY:
+        raise RuntimeError(
+            "SERP_API_KEY is not set — web search is unavailable. "
+            "Set it in the root .env to enable this tool."
+        )
     params = {
         "engine": "google",
         "q": query,
