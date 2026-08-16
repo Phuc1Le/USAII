@@ -155,6 +155,11 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
     const enrichedIdea = result?.enriched_idea?.trim()
     const ideaForGoals = enrichedIdea || idea.trim()
     setGoalIdea(ideaForGoals)
+    // The clarify banner reads `answersMutation.error ?? goalsMutation.error`, and several
+    // paths here (all-blank answers, skip assessment) reach goals without re-running
+    // answersMutation — so its old error would outlive the failure it described and be
+    // shown in place of a new, unrelated goals failure.
+    answersMutation.reset()
     goalsMutation.mutate({
       category: category.trim(),
       description: description.trim(),
@@ -183,6 +188,9 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
       requestGoalSuggestions()
       return
     }
+    // symmetric to the reset in requestGoalSuggestions: a stale goals failure must not
+    // linger behind a fresh answer submission
+    goalsMutation.reset()
     answersMutation.mutate({
       idea: idea.trim(),
       answers: qaPairs,

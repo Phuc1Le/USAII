@@ -1,11 +1,38 @@
 # packages/backend/app/agent_client.py
 
 import hashlib
+import json
 
 from fastapi import HTTPException
 import httpx
 from app import schemas
 from app.config import AGENT_URL, USE_MOCK_AGENT
+
+
+def _agent_error_detail(res: httpx.Response) -> str:
+    """Pull the agent's own explanation out of its error response.
+
+    The agent raises HTTPException too, so its body is already `{"detail": "..."}`.
+    Passing that whole body through as our detail double-encodes it — FastAPI
+    serializes it again into `{"detail": "{\\"detail\\":\\"...\\"}"}` — and the
+    frontend's apiError() unwraps `detail` exactly once, so the user ends up
+    reading an escaped JSON blob instead of the actual reason.
+    """
+    try:
+        payload = res.json()
+    except ValueError:
+        payload = None
+
+    if isinstance(payload, dict):
+        detail = payload.get("detail")
+        if isinstance(detail, str) and detail.strip():
+            return detail.strip()
+        if detail is not None:
+            # FastAPI validation errors put a list of dicts here; no single readable
+            # sentence to extract, so keep it as text rather than dropping it
+            return json.dumps(detail, ensure_ascii=False)
+
+    return res.text.strip() or f"Agent returned HTTP {res.status_code}"
 
 
 def _raise_for_agent_error(res: httpx.Response) -> None:
@@ -16,7 +43,7 @@ def _raise_for_agent_error(res: httpx.Response) -> None:
     schema mismatch) is lost before anyone can read it.
     """
     if res.is_error:
-        raise HTTPException(status_code=res.status_code, detail=res.text)
+        raise HTTPException(status_code=res.status_code, detail=_agent_error_detail(res))
 
 
 def assess_clarity(body: schemas.IntakeRequest) -> schemas.ClarityResult:
