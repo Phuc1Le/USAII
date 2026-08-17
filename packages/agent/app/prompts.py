@@ -134,8 +134,10 @@ def build_clarity_answers_prompt(
     return _build_prompt(
         """
         Re-score the idea after the user answered the clarifying questions.
-        Use the original idea, the answers, and the enriched idea to assess whether the project is now specific enough to execute.
-        Update the clarity score and decide whether any remaining ambiguity still blocks planning.
+        Use the original idea, ALL accumulated answers so far, and the enriched idea to assess whether the project is now specific enough to execute.
+        The input payload includes previous_score, the score assigned in the last round.
+        Only lower the score if the answers reveal a new, specific problem that increases uncertainty — do not lower the score merely from re-evaluating the same information differently.
+        Raise the score if the answers close gaps that were previously identified.
         If clarity_score is still below 0.7, you MUST include 1 to 3 follow-up clarifying questions targeting the remaining gaps.
         If clarity_score is 0.7 or above, return an empty clarifying_questions array.
         The JSON must contain exactly:
@@ -145,9 +147,11 @@ def build_clarity_answers_prompt(
         """,
         {
             "idea": body.idea,
+            "previous_score": body.previous_score,
             "answers": [pair.model_dump(mode="json") for pair in body.answers],
             "enriched_idea": enriched_idea,
         },
+        category=body.category,   # ← now passed through, restores the domain-specific lens for re-scoring
     )
 
 

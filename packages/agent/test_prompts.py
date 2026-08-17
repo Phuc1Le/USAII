@@ -16,6 +16,7 @@ from app.schemas import (
     PlanRequest,
     ProjectContext,
     QAPair,
+    StepContext,
 )
 
 
@@ -32,7 +33,9 @@ def test_all_prompt_builders_return_non_empty_strings():
 
     answers_prompt = build_clarity_answers_prompt(
         ClarityAnswersRequest(
+            category="productivity",
             idea="An app for tracking habits",
+            previous_score=0.45,
             answers=[
                 QAPair(question="Who is it for?", answer="students"),
             ],
@@ -58,6 +61,7 @@ def test_all_prompt_builders_return_non_empty_strings():
             description="Build a productivity app",
             idea="An app for tracking habits",
             goal="MVP",
+            complete_in=14,
         )
     )
     assert plan_prompt.strip()
@@ -82,7 +86,10 @@ def test_all_prompt_builders_return_non_empty_strings():
             project_context=ProjectContext(
                 idea="An app for tracking habits",
                 goal="MVP",
-                steps=["Plan", "Build"],
+                steps=[
+                    StepContext(title="Plan", description="Plan the app", status="done", intended_start=None, intended_end=None),
+                    StepContext(title="Build", description="Build the app", status="todo", intended_start=None, intended_end=None),
+                ],
                 decisions=["Use FastAPI"],
             ),
             history=[
@@ -92,5 +99,7 @@ def test_all_prompt_builders_return_non_empty_strings():
             new_message="What should I do next?",
         )
     )
-    assert chat_prompt.strip()
-    assert "project context" in chat_prompt.lower()
+    assert chat_prompt.system_instruction.strip()
+    assert "project context" in chat_prompt.system_instruction.lower()
+    assert len(chat_prompt.contents) == 3  # 2 history turns + new_message
+    assert chat_prompt.contents[-1].parts[0].text == "What should I do next?"

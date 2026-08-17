@@ -26,8 +26,10 @@ class QAPair(BaseModel):
     answer: str
 
 class ClarityAnswersRequest(BaseModel):
+    category: str
     idea: str
-    answers: list[QAPair]
+    previous_score: float
+    answers: list[QAPair]  # ALL clarifying Q&A pairs accumulated across every round so far — not just the latest round
 
 # response is ClarityResponse again (re-scored)
 
@@ -109,6 +111,7 @@ class PriorStepSummary(BaseModel):
 
 class ChatRequest(BaseModel):
     session_id: str
+    project_id: str
     scope_type: Literal["step", "project"]
     focused_step: FocusedStepContext | None = None
     project_context: ProjectContext
