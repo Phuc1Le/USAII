@@ -27,6 +27,12 @@ class User(Base):
     # itself, so it never has to ask the backend who it is. Replaced by the subject
     # of a verified token once real login exists.
     client_key = Column(String, nullable=False, unique=True)
+    # Both nullable: a user exists from the first request, long before anyone
+    # registers. Having no password is what makes an account "anonymous", and
+    # that is exactly the condition get_current_user uses to decide whether the
+    # X-User-Id header is still allowed to speak for this row.
+    email = Column(String, nullable=True, unique=True)
+    password_hash = Column(String, nullable=True)
     # a name the person can read, e.g. "local-dev" — not used for lookups
     display_name = Column(String, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

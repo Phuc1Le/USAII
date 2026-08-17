@@ -1,6 +1,6 @@
 # packages/backend/app/schemas.py
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
 from typing import Literal
 
 # ── Tasks ────────────────────────────────────────────────────────
@@ -184,3 +184,28 @@ class SubTask(BaseModel):
 
 class GenerateTasksResponse(BaseModel):
     tasks: list[SubTask]
+
+# ── Auth ─────────────────────────────────────────────────────────
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    # 8 is a floor, not a policy — long enough to rule out "1234", short enough
+    # not to push people towards writing it down
+    password: str = Field(min_length=8, max_length=128)
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserResponse(BaseModel):
+    id: str
+    email: str | None
+    display_name: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse

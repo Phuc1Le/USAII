@@ -22,8 +22,9 @@ from app.config import (
     CHAT_SUMMARY_RE_EVERY,
     DECISION_SEARCH_MIN_SCORE,
     INTERNAL_API_TOKEN,
+    JWT_SECRET,
 )
-from app import schemas, crud, serializers, agent_client, models
+from app import schemas, crud, serializers, agent_client, models, auth
 from app.auth import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,12 @@ async def lifespan(_app: FastAPI):
         logger.warning(
             "INTERNAL_API_TOKEN is not set — /internal/* routes are unauthenticated. "
             "Set it in .env (same value for the backend and the agent) before deploying."
+        )
+    if not JWT_SECRET:
+        logger.warning(
+            "JWT_SECRET is not set — login tokens are signed with a public dev key "
+            "and anyone can forge one. Set it in .env before deploying: "
+            'python -c "import secrets; print(secrets.token_urlsafe(32))"'
         )
     yield
 
@@ -52,6 +59,83 @@ app.add_middleware(
     expose_headers=["*"],
     max_age=600,
 )
+
+# ── Auth ──────────────────────────────────────────────────────────
+
+def _serialize_user(user: models.User) -> schemas.UserResponse:
+    return schemas.UserResponse(
+        id=str(user.id),
+        email=user.email,
+        display_name=user.display_name,
+    )
+
+
+@app.post("/api/v1/auth/register", response_model=schemas.TokenResponse, status_code=201)
+def register(
+    body: schemas.RegisterRequest,
+    db: Session = Depends(get_db),
+    x_user_id: str | None = Header(default=None),
+):
+    # stored lowercase so "Me@x.com" and "me@x.com" cannot become two accounts
+    email = body.email.strip().lower()
+
+    if db.query(models.User).filter(models.User.email == email).first():
+        raise HTTPException(status_code=409, detail="That email is already registered")
+
+    user = None
+    key = (x_user_id or "").strip()
+    if key:
+        candidate = db.query(models.User).filter(models.User.client_key == key).first()
+        # Claim the anonymous row this browser has been using, so whatever was
+        # created before signing up stays with the person who created it.
+        # Only if it has no credentials — otherwise registering would be a way
+        # to overwrite the password on someone else's account.
+        if candidate and not candidate.password_hash:
+            user = candidate
+
+    if user is None:
+        user = models.User(client_key=f"registered-{secrets.token_urlsafe(16)}", display_name=email)
+        db.add(user)
+
+    user.email = email
+    user.password_hash = auth.hash_password(body.password)
+    if not user.display_name or user.display_name == user.client_key[:12]:
+        user.display_name = email
+
+    try:
+        db.commit()
+    except IntegrityError:
+        # someone registered the same email between the check above and here
+        db.rollback()
+        raise HTTPException(status_code=409, detail="That email is already registered")
+    db.refresh(user)
+
+    return schemas.TokenResponse(
+        access_token=auth.create_access_token(user),
+        user=_serialize_user(user),
+    )
+
+
+@app.post("/api/v1/auth/login", response_model=schemas.TokenResponse)
+def login(body: schemas.LoginRequest, db: Session = Depends(get_db)):
+    email = body.email.strip().lower()
+    user = db.query(models.User).filter(models.User.email == email).first()
+
+    # One message for both "no such email" and "wrong password": saying which
+    # one was wrong tells an attacker which emails have accounts here.
+    if not user or not user.password_hash or not auth.verify_password(body.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+
+    return schemas.TokenResponse(
+        access_token=auth.create_access_token(user),
+        user=_serialize_user(user),
+    )
+
+
+@app.get("/api/v1/auth/me", response_model=schemas.UserResponse)
+def read_me(user: models.User = Depends(get_current_user)):
+    return _serialize_user(user)
+
 
 # ── Intake ────────────────────────────────────────────────────────
 

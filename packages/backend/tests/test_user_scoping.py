@@ -68,10 +68,16 @@ def test_project_numbering_restarts_per_user(client, project_payload):
     assert project["title"] == "Project 1", "a new user's first project must not be numbered after other people's"
 
 
-def test_missing_header_is_rejected(anon_client):
+def test_missing_identity_is_rejected(anon_client):
+    """401, not 400, now that signing in exists.
+
+    Before there was any login, sending no X-User-Id was simply a malformed
+    request. Now "no identity at all" is the ordinary not-signed-in case, and
+    401 is what tells the frontend to send the user to the login screen.
+    """
     res = anon_client.get("/api/v1/projects")
-    assert res.status_code == 400
-    assert "X-User-Id" in res.json()["detail"]
+    assert res.status_code == 401
+    assert "signed in" in res.json()["detail"].lower()
 
 
 def test_the_same_key_always_maps_to_the_same_user(client, project_payload, alice_project):

@@ -28,3 +28,12 @@ ALLOWED_ORIGINS = [
 # Empty means "not configured" — the routes stay open and startup logs a warning,
 # so local development keeps working without extra setup.
 INTERNAL_API_TOKEN = os.environ.get("INTERNAL_API_TOKEN", "")
+
+# Key the login tokens are signed with. Anyone holding it can mint a token for
+# any account, so it must not be committed and must differ per environment.
+# Empty in dev falls back to a fixed dev-only value; startup warns about it.
+JWT_SECRET = os.environ.get("JWT_SECRET", "")
+
+JWT_ALGORITHM = "HS256"
+# How long a login lasts before the user has to sign in again
+JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", str(60 * 24 * 7)))
