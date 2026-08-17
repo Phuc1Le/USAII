@@ -1,5 +1,7 @@
+import logging
+
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, UserPromptPart, TextPart
+from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, ToolCallPart, UserPromptPart, TextPart
 from pydantic_ai.usage import UsageLimits
 from pydantic_ai.exceptions import UsageLimitExceeded
 from app import tools
@@ -9,11 +11,14 @@ from dataclasses import dataclass
 from app.schemas import DecisionSearchResult, FocusedStepContext, MilestoneContext
 MODEL = f"google:{GEMINI_MODEL}"
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 @dataclass
 class ChatDeps:
     project_id: str
 
-def _to_pydantic_history(history: list[ChatMessage]) -> list[ModelMessage]:
+def to_pydantic_history(history: list[ChatMessage]) -> list[ModelMessage]:
     messages: list[ModelMessage] = []
     for m in history:
         if m.role == "user":
@@ -54,6 +59,17 @@ async def run_chat(agent: Agent, prompt: str, deps: ChatDeps, message_history: l
             message_history=message_history,
             usage_limits=UsageLimits(tool_calls_limit=6),
         )
+        tool_calls = [
+            part.tool_name
+            for m in result.all_messages()
+            for part in m.parts
+            if isinstance(part, ToolCallPart)
+        ]
+        if tool_calls:
+            logger.info("chat turn for project %s used tools: %s", deps.project_id, tool_calls)
+        else:
+            logger.info("chat turn for project %s answered with no tool calls", deps.project_id)
         return result.output
     except UsageLimitExceeded:
+        logger.warning("chat turn for project %s hit the tool_calls_limit cap", deps.project_id)
         return "I started looking into this but hit a processing limit before I could finish — could you rephrase or narrow the question?"

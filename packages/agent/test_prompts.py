@@ -81,6 +81,7 @@ def test_all_prompt_builders_return_non_empty_strings():
     chat_prompt = build_chat_prompt(
         ChatRequest(
             session_id="session-1",
+            project_id="1",
             scope_type="project",
             scope_step_title=None,
             project_context=ProjectContext(

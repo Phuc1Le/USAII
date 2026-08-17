@@ -1,10 +1,18 @@
 import json
+import logging
 
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 
+# uvicorn's default LOGGING_CONFIG only attaches handlers to its own "uvicorn"/
+# "uvicorn.error"/"uvicorn.access" loggers, never the root logger — so app-level
+# loggers (e.g. app.react) propagate up and find nothing to actually emit
+# through, and INFO records get silently dropped. This gives the root logger a
+# real handler so every module's logger.info(...) actually reaches stdout.
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
 from app.config import CLARITY_THRESHOLD
-from app.llm import embed_text, json_call, stream_text
+from app.llm import embed_text, json_call
 from app.prompts import (
     build_chat_prompt,
     build_clarity_answers_prompt,
@@ -14,6 +22,7 @@ from app.prompts import (
     build_summary_prompt,
     build_tasks_prompt,
 )
+from app.react import ChatDeps, build_agent, run_chat, to_pydantic_history
 from app.schemas import (
     ChatRequest,
     ClarityAnswersRequest,
@@ -90,15 +99,18 @@ def generate_tasks(body: GenerateTasksRequest):
 @app.post("/agent/chat")
 def chat(body: ChatRequest):
     chat_prompt = build_chat_prompt(body)
-    # print(f"[chat] system_instruction={len(chat_prompt.system_instruction)} chars")
-    # print(f"[chat] contents={[(c.role, c.parts[0].text[:40]) for c in chat_prompt.contents]}")
-    def event_generator():
-        for chunk in stream_text(
-            chat_prompt.contents,
-            system_instruction=chat_prompt.system_instruction,
-        ):
-            payload = json.dumps({"role": "model", "content": chunk})
-            yield f"data: {payload}\n\n"
+    agent = build_agent(chat_prompt.system_instruction)
+    deps = ChatDeps(project_id=body.project_id)
+    history = to_pydantic_history(body.history)
+
+    # Stopgap: run_chat blocks until the full ReAct loop (including any tool
+    # calls) finishes, so this yields the whole answer as one SSE chunk rather
+    # than streaming tokens — real two-phase streaming (status during tool
+    # execution, then token stream) is a separate follow-up task.
+    async def event_generator():
+        answer = await run_chat(agent, body.new_message, deps, history)
+        payload = json.dumps({"role": "model", "content": answer})
+        yield f"data: {payload}\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

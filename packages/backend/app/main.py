@@ -300,6 +300,7 @@ def send_message(
 
     chat_request = {
         "session_id": str(session_id),
+        "project_id": str(project.id),
         "scope_type": session.scope_type,
         "focused_step": focused_step,
         "project_context": {

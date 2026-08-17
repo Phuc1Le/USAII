@@ -14,7 +14,7 @@
 
 import asyncio
 
-from app.react import build_agent, run_chat, ChatDeps, _to_pydantic_history
+from app.react import build_agent, run_chat, ChatDeps, to_pydantic_history
 from app.schemas import ChatMessage
 
 SYSTEM_INSTRUCTION = """
@@ -51,7 +51,7 @@ async def run_case(agent, question: str, note: str):
         agent,
         question,
         deps=DEPS,
-        message_history=_to_pydantic_history([]),
+        message_history=to_pydantic_history([]),
     )
     print(f"   answer: {output[:250]}")
     print()

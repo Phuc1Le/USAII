@@ -7,7 +7,7 @@
 
 import asyncio
 
-from app.react import build_agent, _to_pydantic_history
+from app.react import build_agent, to_pydantic_history
 from app.schemas import ChatMessage
 
 SYSTEM_INSTRUCTION = """
@@ -39,7 +39,7 @@ CASES = [
 
 async def run_case(question: str, note: str):
     agent = build_agent(SYSTEM_INSTRUCTION)
-    result = await agent.run(question, message_history=_to_pydantic_history(FABRICATED_HISTORY))
+    result = await agent.run(question, message_history=to_pydantic_history(FABRICATED_HISTORY))
 
     tool_called = any(
         type(part).__name__ == "ToolCallPart"
