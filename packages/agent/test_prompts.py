@@ -91,7 +91,6 @@ def test_all_prompt_builders_return_non_empty_strings():
                     StepContext(title="Plan", description="Plan the app", status="done", intended_start=None, intended_end=None),
                     StepContext(title="Build", description="Build the app", status="todo", intended_start=None, intended_end=None),
                 ],
-                decisions=["Use FastAPI"],
             ),
             history=[
                 ChatMessage(role="user", content="Hi"),

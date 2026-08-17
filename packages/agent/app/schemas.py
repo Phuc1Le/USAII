@@ -102,8 +102,8 @@ class ProjectContext(BaseModel):
     idea: str            # "An app that helps people go from idea to launch"
     goal: str             # "MVP"
     steps: list[StepContext]   # full plan, for overall awareness regardless of scope
-    decisions: list[str]  # ["Chose FastAPI over Flask", "Using SQLite for demo", ...]
-                          # the decisions table from the DB, as plain text
+    # decisions were dropped once query_decisions existed as a tool — no more
+    # paying for the same data as both an unconditional dump and an on-demand call
 
 class PriorStepSummary(BaseModel):
     title: str

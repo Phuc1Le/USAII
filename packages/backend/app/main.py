@@ -251,7 +251,6 @@ def send_message(
 
     # real agent call — assemble context then stream
     project = session.project
-    decisions = crud.get_decisions(db, project.id)
 
     def step_context(s) -> dict:
         return {
@@ -307,7 +306,6 @@ def send_message(
             "idea": project.idea,
             "goal": project.goal or "",
             "steps": [step_context(s) for s in project.steps],
-            "decisions": [d.content for d in decisions],
         },
         "prior_steps": prior_steps,
         "history": [
