@@ -26,8 +26,10 @@ class QAPair(BaseModel):
     answer: str
 
 class ClarityAnswersRequest(BaseModel):
+    category: str
     idea: str
-    answers: list[QAPair]
+    previous_score: float
+    answers: list[QAPair]  # ALL clarifying Q&A pairs accumulated across every round so far — not just the latest round
 
 # response is ClarityResponse again (re-scored)
 
@@ -100,8 +102,8 @@ class ProjectContext(BaseModel):
     idea: str            # "An app that helps people go from idea to launch"
     goal: str             # "MVP"
     steps: list[StepContext]   # full plan, for overall awareness regardless of scope
-    decisions: list[str]  # ["Chose FastAPI over Flask", "Using SQLite for demo", ...]
-                          # the decisions table from the DB, as plain text
+    # decisions were dropped once query_decisions existed as a tool — no more
+    # paying for the same data as both an unconditional dump and an on-demand call
 
 class PriorStepSummary(BaseModel):
     title: str
@@ -109,6 +111,7 @@ class PriorStepSummary(BaseModel):
 
 class ChatRequest(BaseModel):
     session_id: str
+    project_id: str
     scope_type: Literal["step", "project"]
     focused_step: FocusedStepContext | None = None
     project_context: ProjectContext

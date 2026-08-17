@@ -179,11 +179,11 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
     // so snapshot the actually-answered pairs here rather than re-deriving them later.
     // Re-keying on question text means resubmitting the same round (e.g. after going back
     // from the goals screen) replaces the prior answer instead of duplicating it.
-    setConfirmedAnswers((prev) => {
-      const next = new Map(prev)
-      for (const qa of qaPairs) next.set(qa.question, qa.answer)
-      return next
-    })
+    // Built synchronously (not via the setConfirmedAnswers updater) because the mutation
+    // below needs the merged history in this same call, before React re-renders.
+    const mergedAnswers = new Map(confirmedAnswers)
+    for (const qa of qaPairs) mergedAnswers.set(qa.question, qa.answer)
+    setConfirmedAnswers(mergedAnswers)
     if (qaPairs.length === 0) {
       requestGoalSuggestions()
       return
@@ -192,8 +192,12 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
     // linger behind a fresh answer submission
     goalsMutation.reset()
     answersMutation.mutate({
+      category: category.trim(),
       idea: idea.trim(),
-      answers: qaPairs,
+      previous_score: clarity.clarity_score,
+      // every accumulated Q&A pair so far, not just this round's — the agent needs the
+      // full history to re-score consistently instead of losing earlier rounds' context
+      answers: Array.from(mergedAnswers, ([question, answer]) => ({ question, answer })),
     })
   }
 
@@ -205,12 +209,12 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
         question: question.question,
         answer: answers[index]?.trim() ?? "",
       }))
-    setConfirmedAnswers((prev) => {
-      const next = new Map(prev)
-      for (const qa of qaPairs) if (qa.answer) next.set(qa.question, qa.answer)
-      return next
-    })
+    const mergedAnswers = new Map(confirmedAnswers)
+    for (const qa of qaPairs) if (qa.answer) mergedAnswers.set(qa.question, qa.answer)
+    setConfirmedAnswers(mergedAnswers)
 
+    // this-round-only check on purpose: whether to re-assess at all still depends on
+    // whether the user answered anything in *this* round, same as submitClarifyingAnswers
     const answered = qaPairs.filter((qa) => qa.answer)
     if (answered.length === 0) {
       requestGoalSuggestions()
@@ -224,7 +228,12 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
     try {
       const result = await apiFetch<ClarityResult>("/projects/intake/answers", {
         method: "POST",
-        body: JSON.stringify({ idea: idea.trim(), answers: answered }),
+        body: JSON.stringify({
+          category: category.trim(),
+          idea: idea.trim(),
+          previous_score: clarity.clarity_score,
+          answers: Array.from(mergedAnswers, ([question, answer]) => ({ question, answer })),
+        }),
       })
       setClarity(result)
       requestGoalSuggestions(result)

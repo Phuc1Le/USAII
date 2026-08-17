@@ -67,7 +67,9 @@ class QAPair(BaseModel):
     answer: str
 
 class ClarityAnswersRequest(BaseModel):
+    category: str
     idea: str
+    previous_score: float
     answers: list[QAPair]  # ← matches agent's QAPair  
 
 # ── Goals ────────────────────────────────────────────────────────

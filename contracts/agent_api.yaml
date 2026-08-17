@@ -409,21 +409,32 @@
             },
             "ClarityAnswersRequest": {
                 "properties": {
+                    "category": {
+                        "type": "string",
+                        "title": "Category"
+                    },
                     "idea": {
                         "type": "string",
                         "title": "Idea"
+                    },
+                    "previous_score": {
+                        "type": "number",
+                        "title": "Previous Score"
                     },
                     "answers": {
                         "items": {
                             "$ref": "#/components/schemas/QAPair"
                         },
                         "type": "array",
-                        "title": "Answers"
+                        "title": "Answers",
+                        "description": "All clarifying Q&A pairs accumulated across every round so far, not just the latest round."
                     }
                 },
                 "type": "object",
                 "required": [
+                    "category",
                     "idea",
+                    "previous_score",
                     "answers"
                 ],
                 "title": "ClarityAnswersRequest"
