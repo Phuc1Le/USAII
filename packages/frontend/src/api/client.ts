@@ -1,12 +1,28 @@
 const BASE_URL = "http://localhost:8000/api/v1"
 
 const CLIENT_KEY_STORAGE = "zero-to-one:client-key"
+const TOKEN_STORAGE = "zero-to-one:token"
+const USER_STORAGE = "zero-to-one:user"
 
-// Who the backend thinks we are. Generated here and kept in localStorage — not
-// sessionStorage — so it survives closing the tab; a new key would look like a
-// brand new person with no projects. This identifies, it does not authenticate:
-// anyone can send someone else's key, which is why it is not protecting anything
-// that actually needs protecting.
+export const SIGNED_OUT_EVENT = "zero-to-one:signed-out"
+
+export type AuthUser = {
+  id: string
+  email: string | null
+  display_name: string
+}
+
+type TokenResponse = {
+  access_token: string
+  token_type: string
+  user: AuthUser
+}
+
+// Who the backend thinks we are before anyone signs in. Generated here and kept
+// in localStorage — not sessionStorage — so it survives closing the tab; a new
+// key would look like a brand new person with no projects. This identifies, it
+// does not authenticate, which is why registering makes the backend stop
+// accepting it for that account.
 function getClientKey(): string {
   let key = localStorage.getItem(CLIENT_KEY_STORAGE)
   if (!key) {
@@ -19,11 +35,53 @@ function getClientKey(): string {
   return key
 }
 
-function defaultHeaders(): Record<string, string> {
-  return {
-    "Content-Type": "application/json",
-    "X-User-Id": getClientKey(),
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_STORAGE)
+}
+
+export function getStoredUser(): AuthUser | null {
+  try {
+    const raw = localStorage.getItem(USER_STORAGE)
+    return raw ? (JSON.parse(raw) as AuthUser) : null
+  } catch {
+    return null
   }
+}
+
+function saveSession(res: TokenResponse): AuthUser {
+  localStorage.setItem(TOKEN_STORAGE, res.access_token)
+  localStorage.setItem(USER_STORAGE, JSON.stringify(res.user))
+  return res.user
+}
+
+export function clearSession() {
+  localStorage.removeItem(TOKEN_STORAGE)
+  localStorage.removeItem(USER_STORAGE)
+  // The client_key is deliberately left alone: signing out returns this browser
+  // to the anonymous account it had before, rather than stranding it as a
+  // stranger with no projects.
+}
+
+// A token can expire or be revoked mid-session, and that can happen inside any
+// request from any component. Rather than teaching every caller to handle it,
+// the session is cleared here and the app is told once, in one place.
+function handleSignedOut() {
+  if (!getToken()) return
+  clearSession()
+  window.dispatchEvent(new CustomEvent(SIGNED_OUT_EVENT))
+}
+
+function defaultHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" }
+  const token = getToken()
+  if (token) {
+    // Once signed in, the header identity is refused by the backend anyway —
+    // sending both would only make it ambiguous which one we meant.
+    headers.Authorization = `Bearer ${token}`
+  } else {
+    headers["X-User-Id"] = getClientKey()
+  }
+  return headers
 }
 
 type StreamChatOptions = {
@@ -60,11 +118,38 @@ export async function apiFetch<T>(
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     // headers last: spreading `options` after them let a caller-supplied `headers`
-    // silently drop Content-Type (and now X-User-Id) instead of adding to it
+    // silently drop Content-Type (and now the identity header) instead of adding to it
     headers: { ...defaultHeaders(), ...options?.headers },
   })
+  if (res.status === 401) handleSignedOut()
   if (!res.ok) throw await apiError(res)
   return res.json()
+}
+
+// ── auth ──────────────────────────────────────────────────────────
+
+// Sent with the anonymous client key so the backend can attach the credentials
+// to the account this browser has already been using — whatever was created
+// before signing up stays with the person who created it.
+export async function register(email: string, password: string): Promise<AuthUser> {
+  const res = await apiFetch<TokenResponse>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+    headers: { "X-User-Id": getClientKey() },
+  })
+  return saveSession(res)
+}
+
+export async function login(email: string, password: string): Promise<AuthUser> {
+  const res = await apiFetch<TokenResponse>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  })
+  return saveSession(res)
+}
+
+export async function fetchMe(): Promise<AuthUser> {
+  return apiFetch<AuthUser>("/auth/me")
 }
 
 export async function streamChat(
@@ -78,6 +163,7 @@ export async function streamChat(
     signal,
   })
 
+  if (res.status === 401) handleSignedOut()
   if (!res.ok) throw await apiError(res)
   if (!res.body) throw new Error("Chat stream is unavailable")
 

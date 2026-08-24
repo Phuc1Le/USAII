@@ -109,3 +109,32 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* Account strip. Lives here, not in AuthPanel.css: App renders it on every
+   screen, so it must not depend on the auth screen being mounted. */
+.account-bar {
+  position: fixed;
+  top: 18px;
+  right: 22px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: rgba(26, 24, 22, 0.78);
+}
+
+.account-bar button {
+  border: 1px solid rgba(36, 33, 31, 0.24);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 13px;
+  background: rgba(255, 251, 237, 0.86);
+  color: #1a1816;
+  cursor: pointer;
+}
+
+.account-bar button:hover {
+  background: #fffbed;
+}
