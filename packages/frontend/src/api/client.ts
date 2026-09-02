@@ -54,20 +54,30 @@ function saveSession(res: TokenResponse): AuthUser {
   return res.user
 }
 
+// Registering claims the anonymous account this key pointed at, so afterwards the
+// key names an account that has a password — and the backend rightly refuses to
+// accept a bare header for one. Keeping the key across sign-out therefore left the
+// app unusable: not signed in, and not allowed to be anonymous either. A fresh key
+// is a genuinely new anonymous identity; the old projects are not lost, they belong
+// to the account and come back on sign-in.
+function rotateClientKey() {
+  localStorage.removeItem(CLIENT_KEY_STORAGE)
+}
+
 export function clearSession() {
   localStorage.removeItem(TOKEN_STORAGE)
   localStorage.removeItem(USER_STORAGE)
-  // The client_key is deliberately left alone: signing out returns this browser
-  // to the anonymous account it had before, rather than stranding it as a
-  // stranger with no projects.
+  rotateClientKey()
 }
 
-// A token can expire or be revoked mid-session, and that can happen inside any
-// request from any component. Rather than teaching every caller to handle it,
-// the session is cleared here and the app is told once, in one place.
-function handleSignedOut() {
-  if (!getToken()) return
-  clearSession()
+// A 401 can arrive inside any request from any component, for two different
+// reasons, and both are recoverable without the caller knowing anything about it:
+// a token that expired, or an anonymous key naming an account that has since been
+// given a password. Either way the stored identity is the problem, so it is
+// dropped here and the app is told once, in one place.
+function handleUnauthorized() {
+  if (getToken()) clearSession()
+  else rotateClientKey()
   window.dispatchEvent(new CustomEvent(SIGNED_OUT_EVENT))
 }
 
@@ -121,7 +131,7 @@ export async function apiFetch<T>(
     // silently drop Content-Type (and now the identity header) instead of adding to it
     headers: { ...defaultHeaders(), ...options?.headers },
   })
-  if (res.status === 401) handleSignedOut()
+  if (res.status === 401) handleUnauthorized()
   if (!res.ok) throw await apiError(res)
   return res.json()
 }
@@ -163,7 +173,7 @@ export async function streamChat(
     signal,
   })
 
-  if (res.status === 401) handleSignedOut()
+  if (res.status === 401) handleUnauthorized()
   if (!res.ok) throw await apiError(res)
   if (!res.body) throw new Error("Chat stream is unavailable")
 

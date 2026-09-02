@@ -12,7 +12,7 @@ load_dotenv()
 
 GEMINI_API_KEY = ""
 SERP_API_KEY = ""
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3.6-flash"
 EMBEDDING_MODEL = "gemini-embedding-001"
 CHAT_HISTORY_LIMIT = 20
 CLARITY_THRESHOLD = 0.7
