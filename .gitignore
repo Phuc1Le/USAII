@@ -6,3 +6,5 @@ app.db
 
 # local manual-testing scripts
 scripts/
+
+CLAUDE.md
