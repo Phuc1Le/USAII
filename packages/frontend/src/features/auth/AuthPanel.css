@@ -1,0 +1,44 @@
+.auth-panel {
+  max-width: 520px;
+  text-align: left;
+}
+
+.auth-panel h1 {
+  /* the intake headings run up to 110px, which is far too loud for a form */
+  font-size: clamp(34px, 4vw, 56px);
+}
+
+.auth-note {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(26, 24, 22, 0.72);
+}
+
+.auth-field {
+  display: grid;
+  gap: 8px;
+}
+
+.auth-field > span {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(26, 24, 22, 0.62);
+}
+
+.auth-switch {
+  justify-self: center;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  color: rgba(26, 24, 22, 0.72);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.auth-switch:hover {
+  color: #050505;
+}

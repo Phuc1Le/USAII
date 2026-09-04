@@ -83,6 +83,32 @@ def _category_guidance(category: str | None) -> str:
     )
 
 
+def _plan_category_steps(category: str | None) -> str:
+    """Which concrete step types a plan in this category should cover.
+
+    Separate from _category_guidance: that one says what to *think about*, this one
+    says what work must actually appear as steps. Only the matching category is
+    injected — sending all ten buries the one that applies in nine that don't.
+    """
+    step_map = {
+        "technology": "architecture decisions, prototyping, testing, deployment, and iteration planning",
+        "social media": "positioning, content planning, launch sequence, community engagement, and analytics review",
+        "business": "market validation, ops setup, customer acquisition, and revenue model validation",
+        "education": "curriculum design, learning flow, accessibility review, assessment setup, and rollout",
+        "health": "safety review, privacy review, workflow validation, testing, and compliance checkpoints",
+        "finance": "trust controls, regulatory checks, security review, financial logic validation, and auditability",
+        "creative arts": "concept development, production planning, review cycles, and distribution",
+        "community": "onboarding, moderation setup, feedback loops, and member retention plans",
+        "productivity": "workflow mapping, usability testing, integration setup, and adoption tracking",
+        "sustainability": "impact measurement, resource planning, stakeholder engagement, and long-term monitoring",
+    }
+
+    covered = step_map.get(_normalize_category(category))
+    if not covered:
+        return "Cover the discovery, build, validation, and delivery work this domain actually requires."
+    return f"The plan must include steps covering {covered}."
+
+
 def _build_prompt(
     task: str,
     payload: dict,
@@ -134,8 +160,10 @@ def build_clarity_answers_prompt(
     return _build_prompt(
         """
         Re-score the idea after the user answered the clarifying questions.
-        Use the original idea, the answers, and the enriched idea to assess whether the project is now specific enough to execute.
-        Update the clarity score and decide whether any remaining ambiguity still blocks planning.
+        Use the original idea, ALL accumulated answers so far, and the enriched idea to assess whether the project is now specific enough to execute.
+        The input payload includes previous_score, the score assigned in the last round.
+        Only lower the score if the answers reveal a new, specific problem that increases uncertainty — do not lower the score merely from re-evaluating the same information differently.
+        Raise the score if the answers close gaps that were previously identified.
         If clarity_score is still below 0.7, you MUST include 1 to 3 follow-up clarifying questions targeting the remaining gaps.
         If clarity_score is 0.7 or above, return an empty clarifying_questions array.
         The JSON must contain exactly:
@@ -145,9 +173,11 @@ def build_clarity_answers_prompt(
         """,
         {
             "idea": body.idea,
+            "previous_score": body.previous_score,
             "answers": [pair.model_dump(mode="json") for pair in body.answers],
             "enriched_idea": enriched_idea,
         },
+        category=body.category,   # ← now passed through, restores the domain-specific lens for re-scoring
     )
 
 
@@ -174,12 +204,13 @@ def build_goals_prompt(body: GoalsRequest) -> str:
 
 def build_plan_prompt(body: PlanRequest) -> str:
     return _build_prompt(
-        """
+        f"""
         Turn the idea and selected goal into a realistic project plan.
         Generate a practical sequence of steps and milestones that progress from discovery to delivery.
         Make the steps logically ordered, time-boxed, and dependency-aware.
         The plan must be completed within the number of days given by the "complete_in" field in the input payload. All step dates must fit inside that window starting from today.
-        Tailor the plan to the category: for technology, include architecture decisions, prototyping, testing, deployment, and iteration planning; for social media, include positioning, content planning, launch sequence, community engagement, and analytics review; for business, include market validation, ops setup, customer acquisition, and revenue model validation; for education, include curriculum design, learning flow, accessibility review, assessment setup, and rollout; for health, include safety review, privacy review, workflow validation, testing, and compliance checkpoints; for finance, include trust controls, regulatory checks, security review, financial logic validation, and auditability; for creative arts, include concept development, production planning, review cycles, and distribution; for community, include onboarding, moderation setup, feedback loops, and member retention plans; for productivity, include workflow mapping, usability testing, integration setup, and adoption tracking; for sustainability, include impact measurement, resource planning, stakeholder engagement, and long-term monitoring.
+        {_plan_category_steps(body.category)}
+        Ground every step in the specifics of this idea and description — a step that would read the same for any other project in this category is not specific enough.
         Use dates in YYYY-MM-DD format.
         Keep the plan specific enough to be actionable but concise enough to be read quickly.
         The JSON must contain exactly:

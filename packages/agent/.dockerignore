@@ -2,3 +2,4 @@ __pycache__
 *.pyc
 .venv
 .git
+capture_fixture.py

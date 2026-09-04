@@ -1,0 +1,414 @@
+{
+  "search_metadata": {
+    "id": "6a70b5a56adf27aa99186c32",
+    "status": "Success",
+    "json_endpoint": "https://serpapi.com/searches/IE_jv1X0VkRAoGvgEj58QA/6a70b5a56adf27aa99186c32.json",
+    "pixel_position_endpoint": "https://serpapi.com/searches/IE_jv1X0VkRAoGvgEj58QA/6a70b5a56adf27aa99186c32.json_with_pixel_position",
+    "created_at": "2026-08-03 15:37:09 UTC",
+    "processed_at": "2026-08-03 15:37:09 UTC",
+    "google_url": "https://www.google.com/search?q=fastapi+background+tasks&oq=fastapi+background+tasks&sourceid=chrome&ie=UTF-8",
+    "raw_html_file": "https://serpapi.com/searches/IE_jv1X0VkRAoGvgEj58QA/6a70b5a56adf27aa99186c32.html",
+    "total_time_taken": 3.37
+  },
+  "search_parameters": {
+    "engine": "google",
+    "q": "fastapi background tasks",
+    "google_domain": "google.com",
+    "device": "desktop"
+  },
+  "search_information": {
+    "query_displayed": "fastapi background tasks",
+    "total_results": 105,
+    "time_taken_displayed": 0.22,
+    "organic_results_state": "Results for exact spelling"
+  },
+  "related_questions": [
+    {
+      "question": "What are background tasks in FastAPI?",
+      "type": "ai_overview",
+      "page_token": "PNwApHicHdBfToMwAIDxeBkfXTvCjEsWI4OOoXQC_QO8GNYKnZRSHRPHm3fxVJ7GxQt8-eX7_tEH0_5eDWoY7HE5m43jeNP0faNfb0Tfzarj2YiZqLTeV6JdLm4X8L4Wq-AUeOv3rZdQa5mfAhJ6J9KpNQFRLN4Qxg4qY52cqwNcP-VM8RzVSadCFlgQB1tXhs080ZLsDdasi1Th9A4zZZqDkibdcbo01I7LXQWoK3k0CdYC4nuPGbKMb6ylxha0tceSsm3CpCmMx8kmooymKDbRuuggF2jrVhMdsznjGN6BvcYhf2vGLFTRxVrFLJ6Irwrup88ZxDXh0nLKauwzE6hyxLB0ivzBoQGsM9R8CYgSmafvosPe5hB5aYjPO14SGdqMAOmSsBkosqSckCuRhMIUoNK2zQLkXNfic-Vc_99cvdTdsLQfffMH_nuB_Q",
+      "serpapi_ai_overview_link": "https://serpapi.com/search.json?engine=google_ai_overview&page_token=PNwApHicHdBfToMwAIDxeBkfXTvCjEsWI4OOoXQC_QO8GNYKnZRSHRPHm3fxVJ7GxQt8-eX7_tEH0_5eDWoY7HE5m43jeNP0faNfb0Tfzarj2YiZqLTeV6JdLm4X8L4Wq-AUeOv3rZdQa5mfAhJ6J9KpNQFRLN4Qxg4qY52cqwNcP-VM8RzVSadCFlgQB1tXhs080ZLsDdasi1Th9A4zZZqDkibdcbo01I7LXQWoK3k0CdYC4nuPGbKMb6ylxha0tceSsm3CpCmMx8kmooymKDbRuuggF2jrVhMdsznjGN6BvcYhf2vGLFTRxVrFLJ6Irwrup88ZxDXh0nLKauwzE6hyxLB0ivzBoQGsM9R8CYgSmafvosPe5hB5aYjPO14SGdqMAOmSsBkosqSckCuRhMIUoNK2zQLkXNfic-Vc_99cvdTdsLQfffMH_nuB_Q",
+      "next_page_token": "eyJvbnMiOiIxMDA0MSIsImZjIjoiRXFBQkNtSkJTbWxVTkhSSmIwMVBUekppTm05blMzVkRNR2gzVnpacllXZG1SRlZDVFV4aVJWVlRPR05tUnpWV1JISlFiVTlDTFVaVFRXY3paV0poVURkclpqbHlibWs0Y25wa01UaHphMTlqTlV0WVZpMVpZa2szZG1abWJEWXpaMnRyYnpBNWR4SVdjRGRXZDJGd04xQk5YMGhZTVhOUlVIVjBhbkpqUVJvaVFVUnpjamxtVkRoWmVEWkdSbEJUYzFwcWNYRXdjMkoxUlhoRmExZEtNMGxXWnciLCJmY3YiOiIzIiwiZWkiOiJwN1Z3YXA3UE1fSFgxc1FQdXRqcmNBIiwicWMiOiJDaGhtWVhOMFlYQnBJR0poWTJ0bmNtOTFibVFnZEdGemEzTVFBSDJOZVJFXyIsInF1ZXN0aW9uIjoiV2hhdCBhcmUgYmFja2dyb3VuZCB0YXNrcyBpbiBGYXN0QVBJPyIsImxrIjoiR2lSM2FHRjBJR0Z5WlNCaVlXTnJaM0p2ZFc1a0lIUmhjMnR6SUdsdUlHWmhjM1JoY0drIiwiYnMiOiJjMzJQTVEtQ01CU0U0OXJKRVRzOUF6ZzVzZWlHUm1OMFVUWkdVLUVoRFlTU3ZpSTYtczlGQTlGSXd2eDlkN2xqSi1hR3FUQWdOTUpGUk5sVnE2cUl3UWpLQ0dRQk8wRm1IUng4YjhhZGVraE1HbEdVa3AzWk1reGxsSUlrdUtBeHFDRlJ1aGVaZDgzUXdBM21xQi0tWl9OcFdfUHZ3NDBnLWxnc1lNNWUxV0FVa0ZGbFQtd0dXOC1WNTNJN0hWQzd5UXMyMlNva09LSkpjbm1IaXZEN20zTXJmc1BpQjdiQjhlZ0YiLCJpZCI6ImZjX3A3VndhcDdQTV9IWDFzUVB1dGpyY0FfNCJ9",
+      "serpapi_link": "https://serpapi.com/search.json?device=desktop&engine=google_related_questions&google_domain=google.com&next_page_token=eyJvbnMiOiIxMDA0MSIsImZjIjoiRXFBQkNtSkJTbWxVTkhSSmIwMVBUekppTm05blMzVkRNR2gzVnpacllXZG1SRlZDVFV4aVJWVlRPR05tUnpWV1JISlFiVTlDTFVaVFRXY3paV0poVURkclpqbHlibWs0Y25wa01UaHphMTlqTlV0WVZpMVpZa2szZG1abWJEWXpaMnRyYnpBNWR4SVdjRGRXZDJGd04xQk5YMGhZTVhOUlVIVjBhbkpqUVJvaVFVUnpjamxtVkRoWmVEWkdSbEJUYzFwcWNYRXdjMkoxUlhoRmExZEtNMGxXWnciLCJmY3YiOiIzIiwiZWkiOiJwN1Z3YXA3UE1fSFgxc1FQdXRqcmNBIiwicWMiOiJDaGhtWVhOMFlYQnBJR0poWTJ0bmNtOTFibVFnZEdGemEzTVFBSDJOZVJFXyIsInF1ZXN0aW9uIjoiV2hhdCBhcmUgYmFja2dyb3VuZCB0YXNrcyBpbiBGYXN0QVBJPyIsImxrIjoiR2lSM2FHRjBJR0Z5WlNCaVlXTnJaM0p2ZFc1a0lIUmhjMnR6SUdsdUlHWmhjM1JoY0drIiwiYnMiOiJjMzJQTVEtQ01CU0U0OXJKRVRzOUF6ZzVzZWlHUm1OMFVUWkdVLUVoRFlTU3ZpSTYtczlGQTlGSXd2eDlkN2xqSi1hR3FUQWdOTUpGUk5sVnE2cUl3UWpLQ0dRQk8wRm1IUng4YjhhZGVraE1HbEdVa3AzWk1reGxsSUlrdUtBeHFDRlJ1aGVaZDgzUXdBM21xQi0tWl9OcFdfUHZ3NDBnLWxnc1lNNWUxV0FVa0ZGbFQtd0dXOC1WNTNJN0hWQzd5UXMyMlNva09LSkpjbm1IaXZEN20zTXJmc1BpQjdiQjhlZ0YiLCJpZCI6ImZjX3A3VndhcDdQTV9IWDFzUVB1dGpyY0FfNCJ9"
+    },
+    {
+      "question": "Which is better for background tasks, FastAPI or Celery?",
+      "type": "ai_overview",
+      "page_token": "V0Vdb3icHdBdboIwAADg7DI-zjLEZSZmGcqPZNRQ2kL7skDLj9IKajeRt91lp9ppluw7wvf9ow6n7vfBtMYM19V8frvdHpu-b1T1KHo9L673k5iLQqmyEN1q-by0Xmux9j49d3PeuQkZBrpFINWRXYDxWmExYU_FlQ8NDqDDvXikmtlxTgzLxloSuMBH3nNL1RS8HNNAWQRHKdpSRIMF2IcqLAO45_nQZnqc0NYPRQ4XnFKMvW4qtTLxhBg8WIn0ZSEy-ZQAGe0DYkjYWGnGtVRRKMjQV7l7hZrSMmgxypwd7cYNszlKO8TKE3Rj3E3vOfzEwDgUww0D4xcJzAliiLyW36DFbZa_2cSz6tRvRmH5iczRWWjoBofIRSG87zNOqk71EjgXeOSKYWkTMkRFhg4YjAnDrZORyJ7V4mttz_431x-1Nqvh0jd_dPCCpw",
+      "serpapi_ai_overview_link": "https://serpapi.com/search.json?engine=google_ai_overview&page_token=V0Vdb3icHdBdboIwAADg7DI-zjLEZSZmGcqPZNRQ2kL7skDLj9IKajeRt91lp9ppluw7wvf9ow6n7vfBtMYM19V8frvdHpu-b1T1KHo9L673k5iLQqmyEN1q-by0Xmux9j49d3PeuQkZBrpFINWRXYDxWmExYU_FlQ8NDqDDvXikmtlxTgzLxloSuMBH3nNL1RS8HNNAWQRHKdpSRIMF2IcqLAO45_nQZnqc0NYPRQ4XnFKMvW4qtTLxhBg8WIn0ZSEy-ZQAGe0DYkjYWGnGtVRRKMjQV7l7hZrSMmgxypwd7cYNszlKO8TKE3Rj3E3vOfzEwDgUww0D4xcJzAliiLyW36DFbZa_2cSz6tRvRmH5iczRWWjoBofIRSG87zNOqk71EjgXeOSKYWkTMkRFhg4YjAnDrZORyJ7V4mttz_431x-1Nqvh0jd_dPCCpw",
+      "next_page_token": "eyJvbnMiOiIxMDA0MSIsImZjIjoiRXFBQkNtSkJTbWxVTkhSSmIwMVBUekppTm05blMzVkRNR2gzVnpacllXZG1SRlZDVFV4aVJWVlRPR05tUnpWV1JISlFiVTlDTFVaVFRXY3paV0poVURkclpqbHlibWs0Y25wa01UaHphMTlqTlV0WVZpMVpZa2szZG1abWJEWXpaMnRyYnpBNWR4SVdjRGRXZDJGd04xQk5YMGhZTVhOUlVIVjBhbkpqUVJvaVFVUnpjamxtVkRoWmVEWkdSbEJUYzFwcWNYRXdjMkoxUlhoRmExZEtNMGxXWnciLCJmY3YiOiIzIiwiZWkiOiJwN1Z3YXA3UE1fSFgxc1FQdXRqcmNBIiwicWMiOiJDaGhtWVhOMFlYQnBJR0poWTJ0bmNtOTFibVFnZEdGemEzTVFBSDJOZVJFXyIsInF1ZXN0aW9uIjoiV2hpY2ggaXMgYmV0dGVyIGZvciBiYWNrZ3JvdW5kIHRhc2tzLCBGYXN0QVBJIG9yIENlbGVyeT8iLCJsayI6IkdpRm1ZWE4wWVhCcElHSmhZMnRuY205MWJtUWdkR0Z6YXlCMmN5QmpaV3hsY25rIiwiYnMiOiJjMzJQTVEtQ01CU0U0OXJKRVRzOUF6ZzVzZWlHUm1OMFVUWkdVLUVoRFlTU3ZpSTYtczlGQTlGSXd2eDlkN2xqSi1hR3FUQWdOTUpGUk5sVnE2cUl3UWpLQ0dRQk8wRm1IUng4YjhhZGVraE1HbEdVa3AzWk1reGxsSUlrdUtBeHFDRlJ1aGVaZDgzUXdBM21xQi0tWl9OcFdfUHZ3NDBnLWxnc1lNNWUxV0FVa0ZGbFQtd0dXOC1WNTNJN0hWQzd5UXMyMlNva09LSkpjbm1IaXZEN20zTXJmc1BpQjdiQjhlZ0YiLCJpZCI6ImZjX3A3VndhcDdQTV9IWDFzUVB1dGpyY0FfNCJ9",
+      "serpapi_link": "https://serpapi.com/search.json?device=desktop&engine=google_related_questions&google_domain=google.com&next_page_token=eyJvbnMiOiIxMDA0MSIsImZjIjoiRXFBQkNtSkJTbWxVTkhSSmIwMVBUekppTm05blMzVkRNR2gzVnpacllXZG1SRlZDVFV4aVJWVlRPR05tUnpWV1JISlFiVTlDTFVaVFRXY3paV0poVURkclpqbHlibWs0Y25wa01UaHphMTlqTlV0WVZpMVpZa2szZG1abWJEWXpaMnRyYnpBNWR4SVdjRGRXZDJGd04xQk5YMGhZTVhOUlVIVjBhbkpqUVJvaVFVUnpjamxtVkRoWmVEWkdSbEJUYzFwcWNYRXdjMkoxUlhoRmExZEtNMGxXWnciLCJmY3YiOiIzIiwiZWkiOiJwN1Z3YXA3UE1fSFgxc1FQdXRqcmNBIiwicWMiOiJDaGhtWVhOMFlYQnBJR0poWTJ0bmNtOTFibVFnZEdGemEzTVFBSDJOZVJFXyIsInF1ZXN0aW9uIjoiV2hpY2ggaXMgYmV0dGVyIGZvciBiYWNrZ3JvdW5kIHRhc2tzLCBGYXN0QVBJIG9yIENlbGVyeT8iLCJsayI6IkdpRm1ZWE4wWVhCcElHSmhZMnRuY205MWJtUWdkR0Z6YXlCMmN5QmpaV3hsY25rIiwiYnMiOiJjMzJQTVEtQ01CU0U0OXJKRVRzOUF6ZzVzZWlHUm1OMFVUWkdVLUVoRFlTU3ZpSTYtczlGQTlGSXd2eDlkN2xqSi1hR3FUQWdOTUpGUk5sVnE2cUl3UWpLQ0dRQk8wRm1IUng4YjhhZGVraE1HbEdVa3AzWk1reGxsSUlrdUtBeHFDRlJ1aGVaZDgzUXdBM21xQi0tWl9OcFdfUHZ3NDBnLWxnc1lNNWUxV0FVa0ZGbFQtd0dXOC1WNTNJN0hWQzd5UXMyMlNva09LSkpjbm1IaXZEN20zTXJmc1BpQjdiQjhlZ0YiLCJpZCI6ImZjX3A3VndhcDdQTV9IWDFzUVB1dGpyY0FfNCJ9"
+    },
+    {
+      "question": "How to stop background task FastAPI?",
+      "type": "featured_snippet",
+      "snippet": "However, once a background task has been added to BackgroundTasks and a response has been sent to the client, there is no direct way to selectively stop it from the application. Background tasks in FastAPI run asynchronously and are not directly controllable after their initiation.",
+      "title": "how to stop a `background_tasks` \u00b7 fastapi fastapi \u00b7 Discussion #10548",
+      "link": "https://github.com/fastapi/fastapi/discussions/10548#:~:text=However%2C%20once%20a%20background%20task,directly%20controllable%20after%20their%20initiation.",
+      "displayed_link": "https://github.com \u203a fastapi \u203a fastapi \u203a discussions",
+      "source_logo": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAZlBMVEX____q6uuXmJpCRkorMDWXmZrs7OyGiYsAAAASGSAjKC0UGyGOkJJYXF8AAA8ADhcfJCokKS4AAAhgZGd9gIPOz9BPU1cOFh709fWEhoigoaJTV1owNDkACRPT1NU2Oz9wc3Xf3-AVApFqAAAAlUlEQVR4AT3IhQHEQAgAwY1zFvf3_pt8ooPDJoqTNE2ynFMhxionnl0oq7qxtqmrtkP1ZRhGmZyMQ9cWEInzMLOJjeTa3MLJG7OS2HbmNLf1g9RO3Kx96qPl9rIpY_16c3q_6pHYTenMbv7UJiOS9SvfH_z6tm4kh0Wi7zgDYpuqQI2f4YeSpgrsviIokZ7TL0bFEeoPLXAIE2idIowAAAAASUVORK5CYII.png",
+      "next_page_token": "eyJvbnMiOiIxMDA0MSIsImZjIjoiRXFBQkNtSkJTbWxVTkhSSmIwMVBUekppTm05blMzVkRNR2gzVnpacllXZG1SRlZDVFV4aVJWVlRPR05tUnpWV1JISlFiVTlDTFVaVFRXY3paV0poVURkclpqbHlibWs0Y25wa01UaHphMTlqTlV0WVZpMVpZa2szZG1abWJEWXpaMnRyYnpBNWR4SVdjRGRXZDJGd04xQk5YMGhZTVhOUlVIVjBhbkpqUVJvaVFVUnpjamxtVkRoWmVEWkdSbEJUYzFwcWNYRXdjMkoxUlhoRmExZEtNMGxXWnciLCJmY3YiOiIzIiwiZWkiOiJwN1Z3YXA3UE1fSFgxc1FQdXRqcmNBIiwicWMiOiJDaGhtWVhOMFlYQnBJR0poWTJ0bmNtOTFibVFnZEdGemEzTVFBSDJOZVJFXyIsInF1ZXN0aW9uIjoiSG93IHRvIHN0b3AgYmFja2dyb3VuZCB0YXNrIEZhc3RBUEk/IiwibGsiOiJHaU5vYjNjZ2RHOGdjM1J2Y0NCaVlXTnJaM0p2ZFc1a0lIUmhjMnNnWm1GemRHRndhUSIsImJzIjoiYzMyUE1RLUNNQlNFNDlySkVUczlBemc1c2VpR1JtTjBVVFpHVS1FaERZU1N2aUk2LXM5RkE5Rkl3dng5ZDdsakotYUdxVEFnTk1KRlJObFZxNnFJd1FqS0NHUUJPMEZtSFJ4OGI4YWRla2hNR2xHVWtwM1pNa3hsbElJa3VLQXhxQ0ZSdWhlWmQ4M1F3QTNtcUItLVpfTnBXX1B2dzQwZy1sZ3NZTTVlMVdBVWtGRmxULXdHVzgtVjUzSTdIVkM3eVFzMjJTb2tPS0pKY25tSGl2RDdtM01yZnNQaUI3YkI4ZWdGIiwiaWQiOiJmY19wN1Z3YXA3UE1fSFgxc1FQdXRqcmNBXzQifQ==",
+      "serpapi_link": "https://serpapi.com/search.json?device=desktop&engine=google_related_questions&google_domain=google.com&next_page_token=eyJvbnMiOiIxMDA0MSIsImZjIjoiRXFBQkNtSkJTbWxVTkhSSmIwMVBUekppTm05blMzVkRNR2gzVnpacllXZG1SRlZDVFV4aVJWVlRPR05tUnpWV1JISlFiVTlDTFVaVFRXY3paV0poVURkclpqbHlibWs0Y25wa01UaHphMTlqTlV0WVZpMVpZa2szZG1abWJEWXpaMnRyYnpBNWR4SVdjRGRXZDJGd04xQk5YMGhZTVhOUlVIVjBhbkpqUVJvaVFVUnpjamxtVkRoWmVEWkdSbEJUYzFwcWNYRXdjMkoxUlhoRmExZEtNMGxXWnciLCJmY3YiOiIzIiwiZWkiOiJwN1Z3YXA3UE1fSFgxc1FQdXRqcmNBIiwicWMiOiJDaGhtWVhOMFlYQnBJR0poWTJ0bmNtOTFibVFnZEdGemEzTVFBSDJOZVJFXyIsInF1ZXN0aW9uIjoiSG93IHRvIHN0b3AgYmFja2dyb3VuZCB0YXNrIEZhc3RBUEk%2FIiwibGsiOiJHaU5vYjNjZ2RHOGdjM1J2Y0NCaVlXTnJaM0p2ZFc1a0lIUmhjMnNnWm1GemRHRndhUSIsImJzIjoiYzMyUE1RLUNNQlNFNDlySkVUczlBemc1c2VpR1JtTjBVVFpHVS1FaERZU1N2aUk2LXM5RkE5Rkl3dng5ZDdsakotYUdxVEFnTk1KRlJObFZxNnFJd1FqS0NHUUJPMEZtSFJ4OGI4YWRla2hNR2xHVWtwM1pNa3hsbElJa3VLQXhxQ0ZSdWhlWmQ4M1F3QTNtcUItLVpfTnBXX1B2dzQwZy1sZ3NZTTVlMVdBVWtGRmxULXdHVzgtVjUzSTdIVkM3eVFzMjJTb2tPS0pKY25tSGl2RDdtM01yZnNQaUI3YkI4ZWdGIiwiaWQiOiJmY19wN1Z3YXA3UE1fSFgxc1FQdXRqcmNBXzQifQ%3D%3D"
+    },
+    {
+      "question": "Does Netflix use FastAPI?",
+      "type": "ai_overview",
+      "page_token": "vSoaQ3icHdBdboIwAADg7DI-jhaGCyZmkUFFpiQU2gIvC7TyE8pPpLPq2-6yU-00S_Yd4fv-kd3Y_z6xVql52RiG1vq5maZGnp_5NBjlch-5wUspq5L3m_XrGr7VfOsvi_s-aTcm80w9DNKAgnhwLokUp6hXfRm0N57tboI5-kxaJgaVi8GJY8Z1BuyJA_VRmtgXFHUVo6GQqGNpkZwGJ6hAhDDD3TErrtUe27mkMyaNyaVrFjCskwwRQdue-rZMR3TBxFlTVIDMjL7KIZIVdFwBqUwZomJES0RiLWAICFCQBz4gDGLKXhI07iw6ipZ7Ik6pc2AeehDqQrGf7znwy0OPfG4d7ELiJLXQcvYVFR4-4TGEUTDfhRXp5OGynGFwzPiq5tettfoP237Wg9rMl6n5Aw_9d3Y",
+      "serpapi_ai_overview_link": "https://serpapi.com/search.json?engine=google_ai_overview&page_token=vSoaQ3icHdBdboIwAADg7DI-jhaGCyZmkUFFpiQU2gIvC7TyE8pPpLPq2-6yU-00S_Yd4fv-kd3Y_z6xVql52RiG1vq5maZGnp_5NBjlch-5wUspq5L3m_XrGr7VfOsvi_s-aTcm80w9DNKAgnhwLokUp6hXfRm0N57tboI5-kxaJgaVi8GJY8Z1BuyJA_VRmtgXFHUVo6GQqGNpkZwGJ6hAhDDD3TErrtUe27mkMyaNyaVrFjCskwwRQdue-rZMR3TBxFlTVIDMjL7KIZIVdFwBqUwZomJES0RiLWAICFCQBz4gDGLKXhI07iw6ipZ7Ik6pc2AeehDqQrGf7znwy0OPfG4d7ELiJLXQcvYVFR4-4TGEUTDfhRXp5OGynGFwzPiq5tettfoP237Wg9rMl6n5Aw_9d3Y",
+      "next_page_token": "eyJvbnMiOiIxMDA0MSIsImZjIjoiRXFBQkNtSkJTbWxVTkhSSmIwMVBUekppTm05blMzVkRNR2gzVnpacllXZG1SRlZDVFV4aVJWVlRPR05tUnpWV1JISlFiVTlDTFVaVFRXY3paV0poVURkclpqbHlibWs0Y25wa01UaHphMTlqTlV0WVZpMVpZa2szZG1abWJEWXpaMnRyYnpBNWR4SVdjRGRXZDJGd04xQk5YMGhZTVhOUlVIVjBhbkpqUVJvaVFVUnpjamxtVkRoWmVEWkdSbEJUYzFwcWNYRXdjMkoxUlhoRmExZEtNMGxXWnciLCJmY3YiOiIzIiwiZWkiOiJwN1Z3YXA3UE1fSFgxc1FQdXRqcmNBIiwicWMiOiJDaGhtWVhOMFlYQnBJR0poWTJ0bmNtOTFibVFnZEdGemEzTVFBSDJOZVJFXyIsInF1ZXN0aW9uIjoiRG9lcyBOZXRmbGl4IHVzZSBGYXN0QVBJPyIsImxrIjoiR2hoa2IyVnpJRzVsZEdac2FYZ2dkWE5sSUdaaGMzUmhjR2siLCJicyI6ImMzMlBNUS1DTUJTRTQ5ckpFVHM5QXpnNXNlaUdSbU4wVVRaR1UtRWhEWVNTdmlJNi1zOUZBOUZJd3Z4OWQ3bGpKLWFHcVRBZ05NSkZSTmxWcTZxSXdRaktDR1FCTzBGbUhSeDhiOGFkZWtoTUdsR1VrcDNaTWt4bGxJSWt1S0F4cUNGUnVoZVpkODNRd0EzbXFCLS1aX05wV19Qdnc0MGctbGdzWU01ZTFXQVVrRkZsVC13R1c4LVY1M0k3SFZDN3lRczIyU29rT0tKSmNubUhpdkQ3bTNNcmZzUGlCN2JCOGVnRiIsImlkIjoiZmNfcDdWd2FwN1BNX0hYMXNRUHV0anJjQV80In0=",
+      "serpapi_link": "https://serpapi.com/search.json?device=desktop&engine=google_related_questions&google_domain=google.com&next_page_token=eyJvbnMiOiIxMDA0MSIsImZjIjoiRXFBQkNtSkJTbWxVTkhSSmIwMVBUekppTm05blMzVkRNR2gzVnpacllXZG1SRlZDVFV4aVJWVlRPR05tUnpWV1JISlFiVTlDTFVaVFRXY3paV0poVURkclpqbHlibWs0Y25wa01UaHphMTlqTlV0WVZpMVpZa2szZG1abWJEWXpaMnRyYnpBNWR4SVdjRGRXZDJGd04xQk5YMGhZTVhOUlVIVjBhbkpqUVJvaVFVUnpjamxtVkRoWmVEWkdSbEJUYzFwcWNYRXdjMkoxUlhoRmExZEtNMGxXWnciLCJmY3YiOiIzIiwiZWkiOiJwN1Z3YXA3UE1fSFgxc1FQdXRqcmNBIiwicWMiOiJDaGhtWVhOMFlYQnBJR0poWTJ0bmNtOTFibVFnZEdGemEzTVFBSDJOZVJFXyIsInF1ZXN0aW9uIjoiRG9lcyBOZXRmbGl4IHVzZSBGYXN0QVBJPyIsImxrIjoiR2hoa2IyVnpJRzVsZEdac2FYZ2dkWE5sSUdaaGMzUmhjR2siLCJicyI6ImMzMlBNUS1DTUJTRTQ5ckpFVHM5QXpnNXNlaUdSbU4wVVRaR1UtRWhEWVNTdmlJNi1zOUZBOUZJd3Z4OWQ3bGpKLWFHcVRBZ05NSkZSTmxWcTZxSXdRaktDR1FCTzBGbUhSeDhiOGFkZWtoTUdsR1VrcDNaTWt4bGxJSWt1S0F4cUNGUnVoZVpkODNRd0EzbXFCLS1aX05wV19Qdnc0MGctbGdzWU01ZTFXQVVrRkZsVC13R1c4LVY1M0k3SFZDN3lRczIyU29rT0tKSmNubUhpdkQ3bTNNcmZzUGlCN2JCOGVnRiIsImlkIjoiZmNfcDdWd2FwN1BNX0hYMXNRUHV0anJjQV80In0%3D"
+    }
+  ],
+  "ai_overview": {
+    "page_token": "t0f4bHiczVXdbuo4EH6AfYe929ycliRA-akUHTlugJBC8Wnh0N5EwQnmJ3-NQ0N7d95ln2qfZh2HQIDQaldaaUckxvZ4ZjwzX75ff7pLf_3Xb78v4jikt6KYJEmFBAFxnQoOPNGi7z4W54FLI7z4ToNNhJ2lreBFFHiOQFxlQ4WFqzi-8P6m1ARMFUlwlkrYnCRW2BwNzN5Upmi0iVcRBgK3ppgzizor5my7oqIpstf6j9odm1RoxfErrWlrO7TU5aBer1QluV15EC2PKYD_XFSgaumgAZ0NpEyDAPiFEXaMGVkyY7l00gUuhbMJ9wFhtof2KmcC2Sb7IZgaJHetj1qSzgc7Z-izWPpHhhLuKc2jhjRQCLAo-sUVI18oS8xOym1ml8vPk13sPJqLllByPB8DdZSAQtiHKEhuReUZJtwdROD6bgvUZGmAywJ1AD0w7CNwuQDZDcgPn-wyMSQWcyXahDWlJM4iNsjiEi8w_xPRtFfhU1sKNOPJ87s3Tm302KPV-mrWDB9lY_kyxgiIeMb03MCyHdtcmNJ3Pper8o3UrjVbVxwkmO5RQosoaW5W-jZKoE6eK_cVVS5AJM_FSR0RWzgvLeDX1s_rBvPsZhuow4fng7VdtrqLVONQCg0semnhDmBtAWAB_aSYWe-XQiRzvxtTh3BXP80o3ks7UoaoGG0mxTYreD1Eujv8cDhR-MQQ7SQiXdXSa2aOitdJvwi6imAah5GGwFXufDYWw0FH5ngkSGXoz5fzkZ9Z72OHmTIiLBeozxxpiLtSM9f8lad_TE4qTI6hyk4h9Vn_6gNWKupnWN0r5WA46e0iJjp0bkrAtFvrQWCE182Rg6dB7KqRM0TlGAi82T-gCvx_QElGJCgnknKUwC9QQoD-OZFkhUxylPC9saEV7nWEEghLiCQ5J5IylPSLKDkQCTkhkiJK9K9RQi6jRN1Hco4SowQl6CJKMiIpoqR_SiT5FieSA0r-FZF8wuTZDUqIhGPGyYZjVtmsyEV26TZIn-KXzk9_3dTM3gzfy9DyuvCuLZEv2WXuxbeeZbtX5tK-Vav9-N2-MtlCcOvYwqsyt2hshctvMwuvSRRsfPtbbNE1FTw3ChTJao7fo_pHuxVbq-sf6n0zbG-HcfSoxi-DTbR6Co1g4uH5POxWa-PkGhm4brRfOy81v1p_no5cU2rM6Zt-027Io548eXzA1ZqNjQ4JdASlbXcxtDrdwbAzu3eTKatYp-1PNHQTT6tgNHGm5uvrFISatW5hFFzftHlUVPl4bkx_Tu77sx4RvAgrrOPqazBEoEsABpC1BgMsggF7EvY0WLepAsWW6dA3RcazRgvX6rbjVK1m1RY8Er-HSkugfqTIfwMQMSfA",
+    "serpapi_link": "https://serpapi.com/search.json?engine=google_ai_overview&page_token=t0f4bHiczVXdbuo4EH6AfYe929ycliRA-akUHTlugJBC8Wnh0N5EwQnmJ3-NQ0N7d95ln2qfZh2HQIDQaldaaUckxvZ4ZjwzX75ff7pLf_3Xb78v4jikt6KYJEmFBAFxnQoOPNGi7z4W54FLI7z4ToNNhJ2lreBFFHiOQFxlQ4WFqzi-8P6m1ARMFUlwlkrYnCRW2BwNzN5Upmi0iVcRBgK3ppgzizor5my7oqIpstf6j9odm1RoxfErrWlrO7TU5aBer1QluV15EC2PKYD_XFSgaumgAZ0NpEyDAPiFEXaMGVkyY7l00gUuhbMJ9wFhtof2KmcC2Sb7IZgaJHetj1qSzgc7Z-izWPpHhhLuKc2jhjRQCLAo-sUVI18oS8xOym1ml8vPk13sPJqLllByPB8DdZSAQtiHKEhuReUZJtwdROD6bgvUZGmAywJ1AD0w7CNwuQDZDcgPn-wyMSQWcyXahDWlJM4iNsjiEi8w_xPRtFfhU1sKNOPJ87s3Tm302KPV-mrWDB9lY_kyxgiIeMb03MCyHdtcmNJ3Pper8o3UrjVbVxwkmO5RQosoaW5W-jZKoE6eK_cVVS5AJM_FSR0RWzgvLeDX1s_rBvPsZhuow4fng7VdtrqLVONQCg0semnhDmBtAWAB_aSYWe-XQiRzvxtTh3BXP80o3ks7UoaoGG0mxTYreD1Eujv8cDhR-MQQ7SQiXdXSa2aOitdJvwi6imAah5GGwFXufDYWw0FH5ngkSGXoz5fzkZ9Z72OHmTIiLBeozxxpiLtSM9f8lad_TE4qTI6hyk4h9Vn_6gNWKupnWN0r5WA46e0iJjp0bkrAtFvrQWCE182Rg6dB7KqRM0TlGAi82T-gCvx_QElGJCgnknKUwC9QQoD-OZFkhUxylPC9saEV7nWEEghLiCQ5J5IylPSLKDkQCTkhkiJK9K9RQi6jRN1Hco4SowQl6CJKMiIpoqR_SiT5FieSA0r-FZF8wuTZDUqIhGPGyYZjVtmsyEV26TZIn-KXzk9_3dTM3gzfy9DyuvCuLZEv2WXuxbeeZbtX5tK-Vav9-N2-MtlCcOvYwqsyt2hshctvMwuvSRRsfPtbbNE1FTw3ChTJao7fo_pHuxVbq-sf6n0zbG-HcfSoxi-DTbR6Co1g4uH5POxWa-PkGhm4brRfOy81v1p_no5cU2rM6Zt-027Io548eXzA1ZqNjQ4JdASlbXcxtDrdwbAzu3eTKatYp-1PNHQTT6tgNHGm5uvrFISatW5hFFzftHlUVPl4bkx_Tu77sx4RvAgrrOPqazBEoEsABpC1BgMsggF7EvY0WLepAsWW6dA3RcazRgvX6rbjVK1m1RY8Er-HSkugfqTIfwMQMSfA"
+  },
+  "organic_results": [
+    {
+      "position": 1,
+      "title": "Background Tasks",
+      "link": "https://fastapi.tiangolo.com/tutorial/background-tasks/",
+      "redirect_link": "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://fastapi.tiangolo.com/tutorial/background-tasks/&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4QFnoECBUQAQ",
+      "displayed_link": "https://fastapi.tiangolo.com \u203a tutorial \u203a background-tasks",
+      "favicon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAP1BMVEVHcEwAlogAlogAlogAlogAlogAlocAlogAlogAlogAk4UAjn8AkYJYr6XV6-l4vbW53dn9__8nn5KYzMXt9_ZQQ7D7AAAAFHRSTlMAS4_F6PoTof_i-vr6-_78_v_6_RLM3x0AAAD0SURBVHgBhVOFgQMxDMuF8Xj_WT8sPzUqVzLbjGDjQiolBd_YH9DGZqiM8mn0T54XErCWfzd3oIfEacJTczjRH3mqIP59GPAlyshv8jHtA0dR8BYAXsN5daSoMmoQQwLcnd6Vb2mYLCAOYndwhJkoYxsR-GZ-R1SyfUvxKfwTPCmVMwFBeK_rvUOM0U-BYBIBjmx_VqSpkIzUuJMaJyDwKVNvceK9ApiEA9QISCR5FwejRiQ5ywwnaqRlolHFQZru0ShmZ5POWT8Ec1jhumAO3oxxx2dXyA4CPRbGozjKc6yc_4t3y6Vdrv36cNantz7e5fl_AdbHF-6db7-8AAAAAElFTkSuQmCC.png",
+      "snippet": "You can define background tasks to be run after returning a response. This is useful for operations that need to happen after a request.",
+      "snippet_highlighted_words": [
+        "define background tasks"
+      ],
+      "about_this_result": {
+        "source": {
+          "description": "You can define background tasks to be run after returning a response. This is useful for operations that need to happen after a request.",
+          "source_info_link": "https://fastapi.tiangolo.com/tutorial/background-tasks/",
+          "icon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAP1BMVEVHcEwAlogAlogAlogAlogAlogAlocAlogAlogAlogAk4UAjn8AkYJYr6XV6-l4vbW53dn9__8nn5KYzMXt9_ZQQ7D7AAAAFHRSTlMAS4_F6PoTof_i-vr6-_78_v_6_RLM3x0AAAD0SURBVHgBhVOFgQMxDMuF8Xj_WT8sPzUqVzLbjGDjQiolBd_YH9DGZqiM8mn0T54XErCWfzd3oIfEacJTczjRH3mqIP59GPAlyshv8jHtA0dR8BYAXsN5daSoMmoQQwLcnd6Vb2mYLCAOYndwhJkoYxsR-GZ-R1SyfUvxKfwTPCmVMwFBeK_rvUOM0U-BYBIBjmx_VqSpkIzUuJMaJyDwKVNvceK9ApiEA9QISCR5FwejRiQ5ywwnaqRlolHFQZru0ShmZ5POWT8Ec1jhumAO3oxxx2dXyA4CPRbGozjKc6yc_4t3y6Vdrv36cNantz7e5fl_AdbHF-6db7-8AAAAAElFTkSuQmCC.png"
+        },
+        "languages": [
+          "en"
+        ],
+        "regions": [
+          "US"
+        ]
+      },
+      "about_page_link": "https://www.google.com/search?q=About+https://fastapi.tiangolo.com/tutorial/background-tasks/&tbm=ilp",
+      "about_page_serpapi_link": "https://serpapi.com/search.json?engine=google_about_this_result&google_domain=google.com&q=About+https%3A%2F%2Ffastapi.tiangolo.com%2Ftutorial%2Fbackground-tasks%2F",
+      "source": "FastAPI",
+      "read_more_link": "https://fastapi.tiangolo.com/tutorial/background-tasks/#:~:text=You%20can%20define%20background%20tasks,complete%20before%20receiving%20the%20response."
+    },
+    {
+      "position": 2,
+      "title": "How are you actually managing background/async tasks in ...",
+      "link": "https://www.reddit.com/r/FastAPI/comments/1sbnurr/how_are_you_actually_managing_backgroundasync/",
+      "redirect_link": "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://www.reddit.com/r/FastAPI/comments/1sbnurr/how_are_you_actually_managing_backgroundasync/&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4QFnoECB4QAQ",
+      "displayed_link": "40+ comments \u00b7 4 months ago",
+      "favicon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y-mAAAAhFBMVEVHcEz_RQD_RQD_RQD_RQD_RQD_RQD_RQD_RQD_PQD_NgD-XS32dlf5vK3____64dusLADUz9H-jXLOPAoSHiFrLBm3uLn3_f7jVS_b6e77pJDJo6H718__RQDw9ffs5-jm8fPIXlHqKwD5-PjolIP_VgP_SQLQ2uAyODvQ4ekABAhqcHK4ptuCAAAAHnRSTlMAPobB7P9mHdb__________________________8J6YdtgAAABWUlEQVR4AWySYZNDMBCGWyw2SI9TGnWqILT____dm6Enc-MZH8Qz2V3Je_rj7Lgekec659N_fIgPnn-yCULaYaYwsCqShYhiQXQ-dJxIedltQDZfqZQyY6K1st3vO78WsiyNDI3zySK_caJUygTMzN7eTnxdBXMcb3-0TsMC30RUJfciqSIs8JCZycHwWV1n2UVuXDKzxsDOySWu5AGVoB_TUh5imhJFpQTNfav7uDcSlBERJLUN9LOLewn6LnpCNS0EyvKg-vLRjVRLUIuxe8hSDYyyLqatyr68jdO6cxpvWGIeDOQQujagNs7YuumbJmYiZz0E3aJvMc95Ps8F-rV6PQQ0JY4XpVqVv0Cu2lYps9HbDp6HRS9Kv1-vt1Z4HeDI_1yZiFMNFIzWqYkChftl8zSkegE6HSYmENgxYYQHRGzUHiLHyh3ModvZo7nHxA71ofwdSnYAAPpVIo4RUPiIAAAAAElFTkSuQmCC.png",
+      "snippet": "I\u2019ve been building with FastAPI for a while now and I\u2019m curious how people are really handling background work beyond simple demos. The docs ...",
+      "sitelinks": {
+        "list": [
+          {
+            "title": "Using Background Tasks in FastAPI: An Easy Way to ...",
+            "link": "https://www.reddit.com/r/Python/comments/15n89zm/using_background_tasks_in_fastapi_an_easy_way_to/",
+            "answer_count": 9,
+            "date": "Aug 10, 2023"
+          },
+          {
+            "title": "FastAPI waits BackgroundTasks to finish before returning",
+            "link": "https://www.reddit.com/r/learnpython/comments/12jz7ky/fastapi_waits_backgroundtasks_to_finish_before/",
+            "answer_count": 1,
+            "date": "Apr 12, 2023"
+          }
+        ]
+      },
+      "about_this_result": {
+        "source": {
+          "description": "I've been building with FastAPI for a while now and I'm curious how people are really handling background work beyond simple demos.",
+          "source_info_link": "https://www.reddit.com/r/FastAPI/comments/1sbnurr/how_are_you_actually_managing_backgroundasync/",
+          "icon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y-mAAAAhFBMVEVHcEz_RQD_RQD_RQD_RQD_RQD_RQD_RQD_RQD_PQD_NgD-XS32dlf5vK3____64dusLADUz9H-jXLOPAoSHiFrLBm3uLn3_f7jVS_b6e77pJDJo6H718__RQDw9ffs5-jm8fPIXlHqKwD5-PjolIP_VgP_SQLQ2uAyODvQ4ekABAhqcHK4ptuCAAAAHnRSTlMAPobB7P9mHdb__________________________8J6YdtgAAABWUlEQVR4AWySYZNDMBCGWyw2SI9TGnWqILT____dm6Enc-MZH8Qz2V3Je_rj7Lgekec659N_fIgPnn-yCULaYaYwsCqShYhiQXQ-dJxIedltQDZfqZQyY6K1st3vO78WsiyNDI3zySK_caJUygTMzN7eTnxdBXMcb3-0TsMC30RUJfciqSIs8JCZycHwWV1n2UVuXDKzxsDOySWu5AGVoB_TUh5imhJFpQTNfav7uDcSlBERJLUN9LOLewn6LnpCNS0EyvKg-vLRjVRLUIuxe8hSDYyyLqatyr68jdO6cxpvWGIeDOQQujagNs7YuumbJmYiZz0E3aJvMc95Ps8F-rV6PQQ0JY4XpVqVv0Cu2lYps9HbDp6HRS9Kv1-vt1Z4HeDI_1yZiFMNFIzWqYkChftl8zSkegE6HSYmENgxYYQHRGzUHiLHyh3ModvZo7nHxA71ofwdSnYAAPpVIo4RUPiIAAAAAElFTkSuQmCC.png"
+        },
+        "languages": [
+          "en"
+        ],
+        "regions": [
+          "US"
+        ]
+      },
+      "about_page_link": "https://www.google.com/search?q=About+https://www.reddit.com/r/FastAPI/comments/1sbnurr/how_are_you_actually_managing_backgroundasync/&tbm=ilp",
+      "about_page_serpapi_link": "https://serpapi.com/search.json?engine=google_about_this_result&google_domain=google.com&q=About+https%3A%2F%2Fwww.reddit.com%2Fr%2FFastAPI%2Fcomments%2F1sbnurr%2Fhow_are_you_actually_managing_backgroundasync%2F",
+      "source": "Reddit \u00b7 r/FastAPI"
+    },
+    {
+      "position": 3,
+      "title": "Celery and Background Tasks. Using FastAPI with long ...",
+      "link": "https://medium.com/@hitorunajp/celery-and-background-tasks-aebb234cae5d",
+      "redirect_link": "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://medium.com/%40hitorunajp/celery-and-background-tasks-aebb234cae5d&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4QFnoECBsQAQ",
+      "displayed_link": "130+ likes \u00b7 1 year ago",
+      "favicon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y-mAAAARVBMVEVHcEwAAAAAAAAAAAAAAAAAAABwcHCoqKifn58bGxt8fHzKysr___8rKyv5-fnW1tbp6emQkJCsrKxaWlq0tLTBwcE-Pj777dpoAAAABnRSTlMAS8D5_5mXKh4CAAAA3ElEQVR4AXzRUQ6EIAwEUNRZClgFQb3_UbfQEDUbd76qL5WMGGOGccJPpnEwkg9e8pE9vGYw4zuOZnrHyeBPFC055zw0wTkKN8TMzEHHZWWOuCMJJh03QXpgrlr0IzLmB-6L4KzHZ0Ub947-EF3q4rI3zByuzSLogDOiYeCICxGZVxmsYuR8x9DaJFQkL3UoX-iTvNg2xbPVvrB37ZgfeGr7_tl0Q_2HXjEjSe0HWnlWJGz1DEXEAsla2lyXcIj2K6O6Wvr1kQXCnL7DG9l4kwneBIY3aeJN1HizAwDOfRO3mlC3PQAAAABJRU5ErkJggg.png",
+      "snippet": "A simple tutorial on how to do this, with two methods, one called BackgroundTasks and the other one named funnily Celery.",
+      "snippet_highlighted_words": [
+        "two methods, one called BackgroundTasks"
+      ],
+      "about_this_result": {
+        "source": {
+          "description": "A simple tutorial on how to do this, with two methods, one called BackgroundTasks and the other one named funnily Celery.",
+          "source_info_link": "https://medium.com/@hitorunajp/celery-and-background-tasks-aebb234cae5d",
+          "icon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y-mAAAARVBMVEVHcEwAAAAAAAAAAAAAAAAAAABwcHCoqKifn58bGxt8fHzKysr___8rKyv5-fnW1tbp6emQkJCsrKxaWlq0tLTBwcE-Pj777dpoAAAABnRSTlMAS8D5_5mXKh4CAAAA3ElEQVR4AXzRUQ6EIAwEUNRZClgFQb3_UbfQEDUbd76qL5WMGGOGccJPpnEwkg9e8pE9vGYw4zuOZnrHyeBPFC055zw0wTkKN8TMzEHHZWWOuCMJJh03QXpgrlr0IzLmB-6L4KzHZ0Ub947-EF3q4rI3zByuzSLogDOiYeCICxGZVxmsYuR8x9DaJFQkL3UoX-iTvNg2xbPVvrB37ZgfeGr7_tl0Q_2HXjEjSe0HWnlWJGz1DEXEAsla2lyXcIj2K6O6Wvr1kQXCnL7DG9l4kwneBIY3aeJN1HizAwDOfRO3mlC3PQAAAABJRU5ErkJggg.png"
+        },
+        "languages": [
+          "en"
+        ],
+        "regions": [
+          "US"
+        ]
+      },
+      "about_page_link": "https://www.google.com/search?q=About+https://medium.com/@hitorunajp/celery-and-background-tasks-aebb234cae5d&tbm=ilp",
+      "about_page_serpapi_link": "https://serpapi.com/search.json?engine=google_about_this_result&google_domain=google.com&q=About+https%3A%2F%2Fmedium.com%2F%40hitorunajp%2Fcelery-and-background-tasks-aebb234cae5d",
+      "source": "Medium \u00b7 Hitoruna",
+      "read_more_link": "https://medium.com/@hitorunajp/celery-and-background-tasks-aebb234cae5d#:~:text=As%20a%20result%2C%20I%20developed,one%20named%20funnily%20Celery%20."
+    },
+    {
+      "position": 4,
+      "title": "How to Implement Background Tasks in FastAPI",
+      "link": "https://oneuptime.com/blog/post/2026-02-02-fastapi-background-tasks/view",
+      "redirect_link": "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://oneuptime.com/blog/post/2026-02-02-fastapi-background-tasks/view&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4QFnoECBgQAQ",
+      "displayed_link": "https://oneuptime.com \u203a Blog",
+      "favicon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y-mAAAAclBMVEUSEhIREREAAAD___-goKC2trb7-_sICAhNTU0_Pz8PCxEAAAoIAA3z8_N6enrj4-PCwsIiMxtuvExqtkpSijqSkpJsam0jPxWD4VqA3Fhkq0bu7u68vLyop6kYOAZ-2VfU1NQuKy8pRB2H6V1kZGQaIhZmRmRtAAAAlElEQVR4AeRQgwHEQBC8nY1tG_2X-EZYQeawprgUiN7v0AbQ8x3bWAJk5WFV1VMjoOkgw3zA2hhth11mD34QhkFkbSNtFzEnaZbnWWFujWUFcN1kbZsvjQ9tV76N0too4HFdcYxSkTruhzHLxvBnJFSKLQGla5cTDP-BmZZbAOiVFoKMB3YLge3hPtwhDAR4w38IAwAD9whOVUPFqAAAAABJRU5ErkJggg.png",
+      "date": "Feb 2, 2026",
+      "snippet": "Background tasks let you run operations after returning a response to the client. This keeps your API responsive while handling time-consuming ...",
+      "snippet_highlighted_words": [
+        "Background tasks let you run operations after returning a response to the client"
+      ],
+      "about_this_result": {
+        "source": {
+          "description": "Background tasks let you run operations after returning a response to the client. This keeps your API responsive while handling time-consuming ...",
+          "source_info_link": "https://oneuptime.com/blog/post/2026-02-02-fastapi-background-tasks/view",
+          "icon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y-mAAAAclBMVEUSEhIREREAAAD___-goKC2trb7-_sICAhNTU0_Pz8PCxEAAAoIAA3z8_N6enrj4-PCwsIiMxtuvExqtkpSijqSkpJsam0jPxWD4VqA3Fhkq0bu7u68vLyop6kYOAZ-2VfU1NQuKy8pRB2H6V1kZGQaIhZmRmRtAAAAlElEQVR4AeRQgwHEQBC8nY1tG_2X-EZYQeawprgUiN7v0AbQ8x3bWAJk5WFV1VMjoOkgw3zA2hhth11mD34QhkFkbSNtFzEnaZbnWWFujWUFcN1kbZsvjQ9tV76N0too4HFdcYxSkTruhzHLxvBnJFSKLQGla5cTDP-BmZZbAOiVFoKMB3YLge3hPtwhDAR4w38IAwAD9whOVUPFqAAAAABJRU5ErkJggg.png"
+        },
+        "languages": [
+          "en"
+        ],
+        "regions": [
+          "US"
+        ]
+      },
+      "about_page_link": "https://www.google.com/search?q=About+https://oneuptime.com/blog/post/2026-02-02-fastapi-background-tasks/view&tbm=ilp",
+      "about_page_serpapi_link": "https://serpapi.com/search.json?engine=google_about_this_result&google_domain=google.com&q=About+https%3A%2F%2Foneuptime.com%2Fblog%2Fpost%2F2026-02-02-fastapi-background-tasks%2Fview",
+      "source": "OneUptime"
+    },
+    {
+      "position": 5,
+      "title": "Background Tasks - BackgroundTasks - FastAPI",
+      "link": "https://fastapi.tiangolo.com/reference/background/",
+      "redirect_link": "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://fastapi.tiangolo.com/reference/background/&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4QFnoECBwQAQ",
+      "displayed_link": "https://fastapi.tiangolo.com \u203a reference \u203a background",
+      "favicon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAP1BMVEVHcEwAlogAlogAlogAlogAlogAlocAlogAlogAlogAk4UAjn8AkYJYr6XV6-l4vbW53dn9__8nn5KYzMXt9_ZQQ7D7AAAAFHRSTlMAS4_F6PoTof_i-vr6-_78_v_6_RLM3x0AAAD0SURBVHgBhVOFgQMxDMuF8Xj_WT8sPzUqVzLbjGDjQiolBd_YH9DGZqiM8mn0T54XErCWfzd3oIfEacJTczjRH3mqIP59GPAlyshv8jHtA0dR8BYAXsN5daSoMmoQQwLcnd6Vb2mYLCAOYndwhJkoYxsR-GZ-R1SyfUvxKfwTPCmVMwFBeK_rvUOM0U-BYBIBjmx_VqSpkIzUuJMaJyDwKVNvceK9ApiEA9QISCR5FwejRiQ5ywwnaqRlolHFQZru0ShmZ5POWT8Ec1jhumAO3oxxx2dXyA4CPRbGozjKc6yc_4t3y6Vdrv36cNantz7e5fl_AdbHF-6db7-8AAAAAElFTkSuQmCC.png",
+      "snippet": "A collection of background tasks that will be called after a response has been sent to the client. Read more about it in the FastAPI docs for Background Tasks.",
+      "snippet_highlighted_words": [
+        "A collection of background tasks that will be called after a response has been"
+      ],
+      "about_this_result": {
+        "source": {
+          "description": "A collection of background tasks that will be called after a response has been sent to the client. Read more about it in the FastAPI docs for Background Tasks.",
+          "source_info_link": "https://fastapi.tiangolo.com/reference/background/",
+          "icon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAP1BMVEVHcEwAlogAlogAlogAlogAlogAlocAlogAlogAlogAk4UAjn8AkYJYr6XV6-l4vbW53dn9__8nn5KYzMXt9_ZQQ7D7AAAAFHRSTlMAS4_F6PoTof_i-vr6-_78_v_6_RLM3x0AAAD0SURBVHgBhVOFgQMxDMuF8Xj_WT8sPzUqVzLbjGDjQiolBd_YH9DGZqiM8mn0T54XErCWfzd3oIfEacJTczjRH3mqIP59GPAlyshv8jHtA0dR8BYAXsN5daSoMmoQQwLcnd6Vb2mYLCAOYndwhJkoYxsR-GZ-R1SyfUvxKfwTPCmVMwFBeK_rvUOM0U-BYBIBjmx_VqSpkIzUuJMaJyDwKVNvceK9ApiEA9QISCR5FwejRiQ5ywwnaqRlolHFQZru0ShmZ5POWT8Ec1jhumAO3oxxx2dXyA4CPRbGozjKc6yc_4t3y6Vdrv36cNantz7e5fl_AdbHF-6db7-8AAAAAElFTkSuQmCC.png"
+        },
+        "languages": [
+          "en"
+        ],
+        "regions": [
+          "US"
+        ]
+      },
+      "about_page_link": "https://www.google.com/search?q=About+https://fastapi.tiangolo.com/reference/background/&tbm=ilp",
+      "about_page_serpapi_link": "https://serpapi.com/search.json?engine=google_about_this_result&google_domain=google.com&q=About+https%3A%2F%2Ffastapi.tiangolo.com%2Freference%2Fbackground%2F",
+      "source": "FastAPI"
+    },
+    {
+      "position": 6,
+      "title": "BackgroundTasks blocks entire FastAPI application #11210",
+      "link": "https://github.com/fastapi/fastapi/discussions/11210",
+      "redirect_link": "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://github.com/fastapi/fastapi/discussions/11210&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4QFnoECBkQAQ",
+      "displayed_link": "https://github.com \u203a fastapi \u203a fastapi \u203a discussions",
+      "favicon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAb1BMVEX____4-Pi3ubtvcnZNUVU-Q0cpLjLr6-x3en0sMTYkKS59gIORk5aUl5n8_Pzw8PFTV1tbX2Pc3d5DSEzn5-g3PECLjpFKTlKFh4qxs7XCxMUuMze_wcLh4uPV1tZzd3o_Q0jOz9CmqKpjZ2qfoaTxAyfNAAABPUlEQVR4AW3TBYKDMBQE0AltAgzuzur9z7ibH5oKfWjc4UEFl6s2Rl8vgcJZGMX04iTEM5UaPomzHA-KkidVAa_WfKNpffMd32oKCHUlWfb27Q19ZSMVrNHGTMDckMtQLqSegdXGpvi3Sf93W9UudRby2WzsEgL4oMvwoqY1AsrQNfFipbXkCGh1BV6oT1pfRwvfOJlo9ZA5NAonStbmB1pawBuDTAgkX4MzV_eC2H3e0C7lk1aBEzd-7SpigJOZVoXx-J5UxzADil-8-KZYoRaK5y2WZxSdgm0j-dakzkIc2kzT6W3IcFnDTzdt4sKbWMqkpNl229IMsfMmg6UaMsJXmv4qCMXDoI4mO5oADwyFDnGoO3KI0jSHQ6E3eJum5TP4Y-EVyUOGXHZjgWd7ZEwOJzZRjbPQt7mF8P4AzsYZpmkFLF4AAAAASUVORK5CYII.png",
+      "snippet": "Request stuck in pending status, whole application doesn't response. Application returns results only when background task finishes.",
+      "snippet_highlighted_words": [
+        "background task"
+      ],
+      "about_this_result": {
+        "source": {
+          "description": "Request stuck in pending status, whole application doesn't response. Application returns results only when background task finishes.",
+          "source_info_link": "https://github.com/fastapi/fastapi/discussions/11210",
+          "icon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAb1BMVEX____4-Pi3ubtvcnZNUVU-Q0cpLjLr6-x3en0sMTYkKS59gIORk5aUl5n8_Pzw8PFTV1tbX2Pc3d5DSEzn5-g3PECLjpFKTlKFh4qxs7XCxMUuMze_wcLh4uPV1tZzd3o_Q0jOz9CmqKpjZ2qfoaTxAyfNAAABPUlEQVR4AW3TBYKDMBQE0AltAgzuzur9z7ibH5oKfWjc4UEFl6s2Rl8vgcJZGMX04iTEM5UaPomzHA-KkidVAa_WfKNpffMd32oKCHUlWfb27Q19ZSMVrNHGTMDckMtQLqSegdXGpvi3Sf93W9UudRby2WzsEgL4oMvwoqY1AsrQNfFipbXkCGh1BV6oT1pfRwvfOJlo9ZA5NAonStbmB1pawBuDTAgkX4MzV_eC2H3e0C7lk1aBEzd-7SpigJOZVoXx-J5UxzADil-8-KZYoRaK5y2WZxSdgm0j-dakzkIc2kzT6W3IcFnDTzdt4sKbWMqkpNl229IMsfMmg6UaMsJXmv4qCMXDoI4mO5oADwyFDnGoO3KI0jSHQ6E3eJum5TP4Y-EVyUOGXHZjgWd7ZEwOJzZRjbPQt7mF8P4AzsYZpmkFLF4AAAAASUVORK5CYII.png"
+        },
+        "languages": [
+          "en"
+        ],
+        "regions": [
+          "US"
+        ]
+      },
+      "about_page_link": "https://www.google.com/search?q=About+https://github.com/fastapi/fastapi/discussions/11210&tbm=ilp",
+      "about_page_serpapi_link": "https://serpapi.com/search.json?engine=google_about_this_result&google_domain=google.com&q=About+https%3A%2F%2Fgithub.com%2Ffastapi%2Ffastapi%2Fdiscussions%2F11210",
+      "source": "GitHub",
+      "read_more_link": "https://github.com/fastapi/fastapi/discussions/11210#:~:text=Current%20result%3A%20request%20stuck%20in,only%20when%20background%20task%20finishes"
+    },
+    {
+      "position": 7,
+      "title": "How to push background task before starting FastAPI ...",
+      "link": "https://stackoverflow.com/questions/76080465/how-to-push-background-task-before-starting-fastapi-application",
+      "redirect_link": "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://stackoverflow.com/questions/76080465/how-to-push-background-task-before-starting-fastapi-application&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4QFnoECBoQAQ",
+      "displayed_link": "1 answer \u00b7 3 years ago",
+      "favicon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y-mAAAAclBMVEX_XgD_XwDHTA3_YABQKBoAER_QTwz_YQCZPhMAFB4fHB14NBcAFx4eHB3ZUgruWQZoLxg2IRtEJRvhVAkAGB2wRREYGh2BNhZfLBkLGR4aGx3nVggzIBymQhISGh32WwS8SQ9AJBuTPBSLORVWKhkADh-4PaZeAAAAuUlEQVR4AbzQRQLDMAwAQaturCqRw8z4_yeWMXTsXsco8Zdgjw5yG4-Gwg2TJzJJyY1D0WJN9pqCIwFd1rym6PkBohtqDhYqI4opEZhmeVjMFVTJOgujm3IAMwSsuNbsB25WOr8I1_uwsSjPOa2b-UYjs9oGg45NY_5cUKRrJv9kR6GFYo4pc5bnGWsKQMwVQfUdcZ13y-niPTgk9SAXlo73UjeLlmjW8SNuYYEhPZuWO0XzSVw2eAEARO8NFMONSEkAAAAASUVORK5CYII.png",
+      "snippet": "This question already has an answer here: FastAPI python: How to run a thread in the background? (1 answer) Closed 3 years ago. I want to ...",
+      "about_this_result": {
+        "source": {
+          "description": "The recommended way to handle the startup and shutdown is using the lifespan parameter of the FastAPI app as described above.",
+          "source_info_link": "https://stackoverflow.com/questions/76080465/how-to-push-background-task-before-starting-fastapi-application",
+          "icon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y-mAAAAclBMVEX_XgD_XwDHTA3_YABQKBoAER_QTwz_YQCZPhMAFB4fHB14NBcAFx4eHB3ZUgruWQZoLxg2IRtEJRvhVAkAGB2wRREYGh2BNhZfLBkLGR4aGx3nVggzIBymQhISGh32WwS8SQ9AJBuTPBSLORVWKhkADh-4PaZeAAAAuUlEQVR4AbzQRQLDMAwAQaturCqRw8z4_yeWMXTsXsco8Zdgjw5yG4-Gwg2TJzJJyY1D0WJN9pqCIwFd1rym6PkBohtqDhYqI4opEZhmeVjMFVTJOgujm3IAMwSsuNbsB25WOr8I1_uwsSjPOa2b-UYjs9oGg45NY_5cUKRrJv9kR6GFYo4pc5bnGWsKQMwVQfUdcZ13y-niPTgk9SAXlo73UjeLlmjW8SNuYYEhPZuWO0XzSVw2eAEARO8NFMONSEkAAAAASUVORK5CYII.png"
+        },
+        "languages": [
+          "en"
+        ],
+        "regions": [
+          "US"
+        ]
+      },
+      "about_page_link": "https://www.google.com/search?q=About+https://stackoverflow.com/questions/76080465/how-to-push-background-task-before-starting-fastapi-application&tbm=ilp",
+      "about_page_serpapi_link": "https://serpapi.com/search.json?engine=google_about_this_result&google_domain=google.com&q=About+https%3A%2F%2Fstackoverflow.com%2Fquestions%2F76080465%2Fhow-to-push-background-task-before-starting-fastapi-application",
+      "source": "Stack Overflow"
+    },
+    {
+      "position": 8,
+      "title": "Using FastAPI Background Tasks",
+      "link": "https://apxml.com/courses/fastapi-ml-deployment/chapter-5-async-operations-performance/using-background-tasks",
+      "redirect_link": "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://apxml.com/courses/fastapi-ml-deployment/chapter-5-async-operations-performance/using-background-tasks&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4QFnoECB0QAQ",
+      "displayed_link": "https://apxml.com \u203a courses \u203a fastapi-ml-deployment",
+      "favicon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y-mAAAAQlBMVEVHcExsReRfRuRPR-VPR-VpRuWLR-WLSOWLR-WGR-VQSOVmR-SJR-WMSOWNSOWLSOVnR-WKR-VOR-V2R-VQR-VPSOXMlulMAAAAFnRSTlMACxSUqh2GtKMy_15R8v_AQ-Mvd8jqE-qYWgAAAKxJREFUeAHF0EcWAyEMBNEmw-R4_6tatLOGtV1bvU8QfpZheGadl1yAFGKScsEr39V6SMM4SfNbYuHQW8DEqdYDmi5AIVzx2cahA3YF2VGHZzBrnY1g6tZ9INz15-505o0Bqp6UMEIXSAkLdNv5kgN0jseu7_VcoI-kSxNuYSTFV5Yzb5BJSwP2wDJdqOWNRwBs4v6WFgQGTbc73CCFmfT918V5qTcgzbUef-oGfFwMcuVBW9kAAAAASUVORK5CYII.png",
+      "snippet": "Background tasks are functions that are executed after the response has been sent to the client. This ensures that the client receives their response as ...",
+      "snippet_highlighted_words": [
+        "functions that are executed after the response has been sent to the client"
+      ],
+      "about_this_result": {
+        "source": {
+          "description": "Background tasks are functions that are executed after the response has been sent to the client. This ensures that the client receives their response as ...",
+          "source_info_link": "https://apxml.com/courses/fastapi-ml-deployment/chapter-5-async-operations-performance/using-background-tasks",
+          "icon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y-mAAAAQlBMVEVHcExsReRfRuRPR-VPR-VpRuWLR-WLSOWLR-WGR-VQSOVmR-SJR-WMSOWNSOWLSOVnR-WKR-VOR-V2R-VQR-VPSOXMlulMAAAAFnRSTlMACxSUqh2GtKMy_15R8v_AQ-Mvd8jqE-qYWgAAAKxJREFUeAHF0EcWAyEMBNEmw-R4_6tatLOGtV1bvU8QfpZheGadl1yAFGKScsEr39V6SMM4SfNbYuHQW8DEqdYDmi5AIVzx2cahA3YF2VGHZzBrnY1g6tZ9INz15-505o0Bqp6UMEIXSAkLdNv5kgN0jseu7_VcoI-kSxNuYSTFV5Yzb5BJSwP2wDJdqOWNRwBs4v6WFgQGTbc73CCFmfT918V5qTcgzbUef-oGfFwMcuVBW9kAAAAASUVORK5CYII.png"
+        },
+        "languages": [
+          "en"
+        ],
+        "regions": [
+          "US"
+        ]
+      },
+      "about_page_link": "https://www.google.com/search?q=About+https://apxml.com/courses/fastapi-ml-deployment/chapter-5-async-operations-performance/using-background-tasks&tbm=ilp",
+      "about_page_serpapi_link": "https://serpapi.com/search.json?engine=google_about_this_result&google_domain=google.com&q=About+https%3A%2F%2Fapxml.com%2Fcourses%2Ffastapi-ml-deployment%2Fchapter-5-async-operations-performance%2Fusing-background-tasks",
+      "source": "ApX Machine Learning",
+      "read_more_link": "https://apxml.com/courses/fastapi-ml-deployment/chapter-5-async-operations-performance/using-background-tasks#:~:text=Background%20tasks%20are%20functions%20that,handles%20these%20follow%2Dup%20actions%20independently."
+    },
+    {
+      "position": 9,
+      "title": "Support concurrent BackgroundTasks #10682",
+      "link": "https://github.com/fastapi/fastapi/discussions/10682",
+      "redirect_link": "https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://github.com/fastapi/fastapi/discussions/10682&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4QFnoECB8QAQ",
+      "displayed_link": "https://github.com \u203a fastapi \u203a fastapi \u203a discussions",
+      "favicon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAb1BMVEX____4-Pi3ubtvcnZNUVU-Q0cpLjLr6-x3en0sMTYkKS59gIORk5aUl5n8_Pzw8PFTV1tbX2Pc3d5DSEzn5-g3PECLjpFKTlKFh4qxs7XCxMUuMze_wcLh4uPV1tZzd3o_Q0jOz9CmqKpjZ2qfoaTxAyfNAAABPUlEQVR4AW3TBYKDMBQE0AltAgzuzur9z7ibH5oKfWjc4UEFl6s2Rl8vgcJZGMX04iTEM5UaPomzHA-KkidVAa_WfKNpffMd32oKCHUlWfb27Q19ZSMVrNHGTMDckMtQLqSegdXGpvi3Sf93W9UudRby2WzsEgL4oMvwoqY1AsrQNfFipbXkCGh1BV6oT1pfRwvfOJlo9ZA5NAonStbmB1pawBuDTAgkX4MzV_eC2H3e0C7lk1aBEzd-7SpigJOZVoXx-J5UxzADil-8-KZYoRaK5y2WZxSdgm0j-dakzkIc2kzT6W3IcFnDTzdt4sKbWMqkpNl229IMsfMmg6UaMsJXmv4qCMXDoI4mO5oADwyFDnGoO3KI0jSHQ6E3eJum5TP4Y-EVyUOGXHZjgWd7ZEwOJzZRjbPQt7mF8P4AzsYZpmkFLF4AAAAASUVORK5CYII.png",
+      "date": "May 19, 2025",
+      "snippet": "First Check \u2022 I added a very descriptive title here. \u2022 I used the GitHub search to find a similar question and didn't find it. \u2022 I searched the ...",
+      "about_this_result": {
+        "source": {
+          "description": "Alternative approach could be to add a parameter like bg_tasks_class to FastAPI() and then use this class to create an instance: # This doesn't ...",
+          "source_info_link": "https://github.com/fastapi/fastapi/discussions/10682",
+          "icon": "https://serpapi.com/images/i/iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAb1BMVEX____4-Pi3ubtvcnZNUVU-Q0cpLjLr6-x3en0sMTYkKS59gIORk5aUl5n8_Pzw8PFTV1tbX2Pc3d5DSEzn5-g3PECLjpFKTlKFh4qxs7XCxMUuMze_wcLh4uPV1tZzd3o_Q0jOz9CmqKpjZ2qfoaTxAyfNAAABPUlEQVR4AW3TBYKDMBQE0AltAgzuzur9z7ibH5oKfWjc4UEFl6s2Rl8vgcJZGMX04iTEM5UaPomzHA-KkidVAa_WfKNpffMd32oKCHUlWfb27Q19ZSMVrNHGTMDckMtQLqSegdXGpvi3Sf93W9UudRby2WzsEgL4oMvwoqY1AsrQNfFipbXkCGh1BV6oT1pfRwvfOJlo9ZA5NAonStbmB1pawBuDTAgkX4MzV_eC2H3e0C7lk1aBEzd-7SpigJOZVoXx-J5UxzADil-8-KZYoRaK5y2WZxSdgm0j-dakzkIc2kzT6W3IcFnDTzdt4sKbWMqkpNl229IMsfMmg6UaMsJXmv4qCMXDoI4mO5oADwyFDnGoO3KI0jSHQ6E3eJum5TP4Y-EVyUOGXHZjgWd7ZEwOJzZRjbPQt7mF8P4AzsYZpmkFLF4AAAAASUVORK5CYII.png"
+        },
+        "languages": [
+          "en"
+        ],
+        "regions": [
+          "US"
+        ]
+      },
+      "about_page_link": "https://www.google.com/search?q=About+https://github.com/fastapi/fastapi/discussions/10682&tbm=ilp",
+      "about_page_serpapi_link": "https://serpapi.com/search.json?engine=google_about_this_result&google_domain=google.com&q=About+https%3A%2F%2Fgithub.com%2Ffastapi%2Ffastapi%2Fdiscussions%2F10682",
+      "source": "GitHub"
+    }
+  ],
+  "related_searches": [
+    {
+      "block_position": 1,
+      "query": "FastAPI background tasks vs Celery",
+      "link": "https://www.google.com/search?sca_esv=1cb68c34dee2a72d&gl=us&hl=en&q=FastAPI+background+tasks+vs+Celery&sa=X&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q1QJ6BAg-EAE",
+      "serpapi_link": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=FastAPI+background+tasks+vs+Celery"
+    },
+    {
+      "block_position": 1,
+      "query": "Fastapi background tasks python",
+      "link": "https://www.google.com/search?sca_esv=1cb68c34dee2a72d&gl=us&hl=en&q=Fastapi+background+tasks+python&sa=X&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q1QJ6BAhHEAE",
+      "serpapi_link": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=Fastapi+background+tasks+python"
+    },
+    {
+      "block_position": 1,
+      "query": "Fastapi background tasks list",
+      "link": "https://www.google.com/search?sca_esv=1cb68c34dee2a72d&gl=us&hl=en&q=Fastapi+background+tasks+list&sa=X&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q1QJ6BAhGEAE",
+      "serpapi_link": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=Fastapi+background+tasks+list"
+    },
+    {
+      "block_position": 1,
+      "query": "Fastapi background tasks examples",
+      "link": "https://www.google.com/search?sca_esv=1cb68c34dee2a72d&gl=us&hl=en&q=Fastapi+background+tasks+examples&sa=X&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q1QJ6BAhIEAE",
+      "serpapi_link": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=Fastapi+background+tasks+examples"
+    },
+    {
+      "block_position": 1,
+      "query": "FastAPI background tasks queue",
+      "link": "https://www.google.com/search?sca_esv=1cb68c34dee2a72d&gl=us&hl=en&q=FastAPI+background+tasks+queue&sa=X&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q1QJ6BAhFEAE",
+      "serpapi_link": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=FastAPI+background+tasks+queue"
+    },
+    {
+      "block_position": 1,
+      "query": "FastAPI background task blocking",
+      "link": "https://www.google.com/search?sca_esv=1cb68c34dee2a72d&gl=us&hl=en&q=FastAPI+background+task+blocking&sa=X&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q1QJ6BAhDEAE",
+      "serpapi_link": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=FastAPI+background+task+blocking"
+    },
+    {
+      "block_position": 1,
+      "query": "FastAPI background tasks async",
+      "link": "https://www.google.com/search?sca_esv=1cb68c34dee2a72d&gl=us&hl=en&q=FastAPI+background+tasks+async&sa=X&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q1QJ6BAhEEAE",
+      "serpapi_link": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=FastAPI+background+tasks+async"
+    },
+    {
+      "block_position": 1,
+      "query": "FastAPI, Celery",
+      "link": "https://www.google.com/search?sca_esv=1cb68c34dee2a72d&gl=us&hl=en&q=FastAPI,+Celery&sa=X&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q1QJ6BAg_EAE",
+      "serpapi_link": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=FastAPI%2C+Celery"
+    }
+  ],
+  "pagination": {
+    "current": 1,
+    "next": "https://www.google.com/search?q=fastapi+background+tasks&sca_esv=1cb68c34dee2a72d&gl=us&hl=en&ei=p7Vwap7PM_HX1sQPutjrcA&start=10&sa=N&sstk=AU9db-BPy_06IIK7FtVnZr_fiYanv1HjfVClvHEemIagseSuvAYZKZGC7C4MYaVVVSYnwh375WWIykIowb40cEL0YS8gTkZug15Opg&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q8NMDegQIOxAW",
+    "other_pages": {
+      "2": "https://www.google.com/search?q=fastapi+background+tasks&sca_esv=1cb68c34dee2a72d&gl=us&hl=en&ei=p7Vwap7PM_HX1sQPutjrcA&start=10&sa=N&sstk=AU9db-BPy_06IIK7FtVnZr_fiYanv1HjfVClvHEemIagseSuvAYZKZGC7C4MYaVVVSYnwh375WWIykIowb40cEL0YS8gTkZug15Opg&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q8tMDegQIOxAE",
+      "3": "https://www.google.com/search?q=fastapi+background+tasks&sca_esv=1cb68c34dee2a72d&gl=us&hl=en&ei=p7Vwap7PM_HX1sQPutjrcA&start=20&sa=N&sstk=AU9db-BPy_06IIK7FtVnZr_fiYanv1HjfVClvHEemIagseSuvAYZKZGC7C4MYaVVVSYnwh375WWIykIowb40cEL0YS8gTkZug15Opg&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q8tMDegQIOxAG",
+      "4": "https://www.google.com/search?q=fastapi+background+tasks&sca_esv=1cb68c34dee2a72d&gl=us&hl=en&ei=p7Vwap7PM_HX1sQPutjrcA&start=30&sa=N&sstk=AU9db-BPy_06IIK7FtVnZr_fiYanv1HjfVClvHEemIagseSuvAYZKZGC7C4MYaVVVSYnwh375WWIykIowb40cEL0YS8gTkZug15Opg&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q8tMDegQIOxAI",
+      "5": "https://www.google.com/search?q=fastapi+background+tasks&sca_esv=1cb68c34dee2a72d&gl=us&hl=en&ei=p7Vwap7PM_HX1sQPutjrcA&start=40&sa=N&sstk=AU9db-BPy_06IIK7FtVnZr_fiYanv1HjfVClvHEemIagseSuvAYZKZGC7C4MYaVVVSYnwh375WWIykIowb40cEL0YS8gTkZug15Opg&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q8tMDegQIOxAK",
+      "6": "https://www.google.com/search?q=fastapi+background+tasks&sca_esv=1cb68c34dee2a72d&gl=us&hl=en&ei=p7Vwap7PM_HX1sQPutjrcA&start=50&sa=N&sstk=AU9db-BPy_06IIK7FtVnZr_fiYanv1HjfVClvHEemIagseSuvAYZKZGC7C4MYaVVVSYnwh375WWIykIowb40cEL0YS8gTkZug15Opg&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q8tMDegQIOxAM",
+      "7": "https://www.google.com/search?q=fastapi+background+tasks&sca_esv=1cb68c34dee2a72d&gl=us&hl=en&ei=p7Vwap7PM_HX1sQPutjrcA&start=60&sa=N&sstk=AU9db-BPy_06IIK7FtVnZr_fiYanv1HjfVClvHEemIagseSuvAYZKZGC7C4MYaVVVSYnwh375WWIykIowb40cEL0YS8gTkZug15Opg&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q8tMDegQIOxAO",
+      "8": "https://www.google.com/search?q=fastapi+background+tasks&sca_esv=1cb68c34dee2a72d&gl=us&hl=en&ei=p7Vwap7PM_HX1sQPutjrcA&start=70&sa=N&sstk=AU9db-BPy_06IIK7FtVnZr_fiYanv1HjfVClvHEemIagseSuvAYZKZGC7C4MYaVVVSYnwh375WWIykIowb40cEL0YS8gTkZug15Opg&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q8tMDegQIOxAQ",
+      "9": "https://www.google.com/search?q=fastapi+background+tasks&sca_esv=1cb68c34dee2a72d&gl=us&hl=en&ei=p7Vwap7PM_HX1sQPutjrcA&start=80&sa=N&sstk=AU9db-BPy_06IIK7FtVnZr_fiYanv1HjfVClvHEemIagseSuvAYZKZGC7C4MYaVVVSYnwh375WWIykIowb40cEL0YS8gTkZug15Opg&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q8tMDegQIOxAS",
+      "10": "https://www.google.com/search?q=fastapi+background+tasks&sca_esv=1cb68c34dee2a72d&gl=us&hl=en&ei=p7Vwap7PM_HX1sQPutjrcA&start=90&sa=N&sstk=AU9db-BPy_06IIK7FtVnZr_fiYanv1HjfVClvHEemIagseSuvAYZKZGC7C4MYaVVVSYnwh375WWIykIowb40cEL0YS8gTkZug15Opg&ved=2ahUKEwjevuH-5ISWAxXxq5UCHTrsGg4Q8tMDegQIOxAU"
+    }
+  },
+  "serpapi_pagination": {
+    "current": 1,
+    "next_link": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=fastapi+background+tasks&start=10",
+    "next": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=fastapi+background+tasks&start=10",
+    "other_pages": {
+      "2": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=fastapi+background+tasks&start=10",
+      "3": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=fastapi+background+tasks&start=20",
+      "4": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=fastapi+background+tasks&start=30",
+      "5": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=fastapi+background+tasks&start=40",
+      "6": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=fastapi+background+tasks&start=50",
+      "7": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=fastapi+background+tasks&start=60",
+      "8": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=fastapi+background+tasks&start=70",
+      "9": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=fastapi+background+tasks&start=80",
+      "10": "https://serpapi.com/search.json?device=desktop&engine=google&gl=us&google_domain=google.com&hl=en&q=fastapi+background+tasks&start=90"
+    }
+  }
+}

@@ -26,8 +26,10 @@ class QAPair(BaseModel):
     answer: str
 
 class ClarityAnswersRequest(BaseModel):
+    category: str
     idea: str
-    answers: list[QAPair]
+    previous_score: float
+    answers: list[QAPair]  # ALL clarifying Q&A pairs accumulated across every round so far — not just the latest round
 
 # response is ClarityResponse again (re-scored)
 
@@ -67,6 +69,10 @@ class MilestonePlan(BaseModel):
     title: str
     after_step_index: int
 
+class MilestoneContext(BaseModel):
+    title: str
+    achieved_at: str | None
+
 class PlanResponse(BaseModel):
     steps: list[StepPlan]
     milestones: list[MilestonePlan]
@@ -96,8 +102,8 @@ class ProjectContext(BaseModel):
     idea: str            # "An app that helps people go from idea to launch"
     goal: str             # "MVP"
     steps: list[StepContext]   # full plan, for overall awareness regardless of scope
-    decisions: list[str]  # ["Chose FastAPI over Flask", "Using SQLite for demo", ...]
-                          # the decisions table from the DB, as plain text
+    # decisions were dropped once query_decisions existed as a tool — no more
+    # paying for the same data as both an unconditional dump and an on-demand call
 
 class PriorStepSummary(BaseModel):
     title: str
@@ -105,6 +111,7 @@ class PriorStepSummary(BaseModel):
 
 class ChatRequest(BaseModel):
     session_id: str
+    project_id: str
     scope_type: Literal["step", "project"]
     focused_step: FocusedStepContext | None = None
     project_context: ProjectContext
@@ -134,3 +141,35 @@ class SummaryRequest(BaseModel):
 
 class SummaryResponse(BaseModel):
     summary: str
+
+# Web search tool
+class WebSearchResultItem(BaseModel):
+    title: str
+    link: str
+    snippet: str
+
+class WebSearchResult(BaseModel):
+    query: str
+    results: list[WebSearchResultItem]
+
+
+# ── /agent/embed ─────────────────────────────────────────────────
+
+class EmbedRequest(BaseModel):
+    text: str
+
+class EmbedResponse(BaseModel):
+    embedding: list[float]
+
+
+# ── query_decisions tool ─────────────────────────────────────────
+
+class DecisionSearchHit(BaseModel):
+    id: str
+    content: str
+    created_at: str
+    score: float
+
+class DecisionSearchResult(BaseModel):
+    query: str
+    hits: list[DecisionSearchHit]

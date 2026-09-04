@@ -10,3 +10,30 @@ USE_MOCK_AGENT = os.environ.get("USE_MOCK_AGENT", "").lower() == "true"
 CHAT_SUMMARY_TRIGGER = int(os.environ.get("CHAT_SUMMARY_TRIGGER", "6"))
 CHAT_SUMMARY_KEEP = int(os.environ.get("CHAT_SUMMARY_KEEP", "3"))
 CHAT_SUMMARY_RE_EVERY = int(os.environ.get("CHAT_SUMMARY_RE_EVERY", "2"))
+DECISION_SEARCH_MIN_SCORE = float(os.environ.get("DECISION_SEARCH_MIN_SCORE", "0.5"))
+
+# Comma-separated list of browser origins allowed to call this API. The default
+# covers a local Vite dev server; a deployed frontend must be added here.
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        "ALLOWED_ORIGINS",
+        "http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174",
+    ).split(",")
+    if origin.strip()
+]
+
+# Shared secret the agent service sends on /internal/* calls. Those routes expose
+# project data with no user check, so they must not be reachable from the internet.
+# Empty means "not configured" — the routes stay open and startup logs a warning,
+# so local development keeps working without extra setup.
+INTERNAL_API_TOKEN = os.environ.get("INTERNAL_API_TOKEN", "")
+
+# Key the login tokens are signed with. Anyone holding it can mint a token for
+# any account, so it must not be committed and must differ per environment.
+# Empty in dev falls back to a fixed dev-only value; startup warns about it.
+JWT_SECRET = os.environ.get("JWT_SECRET", "")
+
+JWT_ALGORITHM = "HS256"
+# How long a login lasts before the user has to sign in again
+JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", str(60 * 24 * 7)))

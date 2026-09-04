@@ -23,6 +23,18 @@ type IntakeFlowProps = {
   onProjectCreated: (project: Project) => void
 }
 
+// Show the server's actual reason rather than always blaming an unreachable
+// backend — the failure is just as often Gemini quota, which port 8000 has
+// nothing to do with.
+function errorText(error: unknown): string {
+  const message = error instanceof Error && error.message ? error.message : ""
+  if (!message) return "Something went wrong. Please try again."
+  if (message.includes("RESOURCE_EXHAUSTED") || message.startsWith("429")) {
+    return "The AI service is out of quota right now. Wait a minute and try again."
+  }
+  return message
+}
+
 export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
   const [step, setStep] = useState<IntakeStep>("landing")
   const [category, setCategory] = useState("")
@@ -143,6 +155,11 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
     const enrichedIdea = result?.enriched_idea?.trim()
     const ideaForGoals = enrichedIdea || idea.trim()
     setGoalIdea(ideaForGoals)
+    // The clarify banner reads `answersMutation.error ?? goalsMutation.error`, and several
+    // paths here (all-blank answers, skip assessment) reach goals without re-running
+    // answersMutation — so its old error would outlive the failure it described and be
+    // shown in place of a new, unrelated goals failure.
+    answersMutation.reset()
     goalsMutation.mutate({
       category: category.trim(),
       description: description.trim(),
@@ -162,18 +179,25 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
     // so snapshot the actually-answered pairs here rather than re-deriving them later.
     // Re-keying on question text means resubmitting the same round (e.g. after going back
     // from the goals screen) replaces the prior answer instead of duplicating it.
-    setConfirmedAnswers((prev) => {
-      const next = new Map(prev)
-      for (const qa of qaPairs) next.set(qa.question, qa.answer)
-      return next
-    })
+    // Built synchronously (not via the setConfirmedAnswers updater) because the mutation
+    // below needs the merged history in this same call, before React re-renders.
+    const mergedAnswers = new Map(confirmedAnswers)
+    for (const qa of qaPairs) mergedAnswers.set(qa.question, qa.answer)
+    setConfirmedAnswers(mergedAnswers)
     if (qaPairs.length === 0) {
       requestGoalSuggestions()
       return
     }
+    // symmetric to the reset in requestGoalSuggestions: a stale goals failure must not
+    // linger behind a fresh answer submission
+    goalsMutation.reset()
     answersMutation.mutate({
+      category: category.trim(),
       idea: idea.trim(),
-      answers: qaPairs,
+      previous_score: clarity.clarity_score,
+      // every accumulated Q&A pair so far, not just this round's — the agent needs the
+      // full history to re-score consistently instead of losing earlier rounds' context
+      answers: Array.from(mergedAnswers, ([question, answer]) => ({ question, answer })),
     })
   }
 
@@ -185,12 +209,12 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
         question: question.question,
         answer: answers[index]?.trim() ?? "",
       }))
-    setConfirmedAnswers((prev) => {
-      const next = new Map(prev)
-      for (const qa of qaPairs) if (qa.answer) next.set(qa.question, qa.answer)
-      return next
-    })
+    const mergedAnswers = new Map(confirmedAnswers)
+    for (const qa of qaPairs) if (qa.answer) mergedAnswers.set(qa.question, qa.answer)
+    setConfirmedAnswers(mergedAnswers)
 
+    // this-round-only check on purpose: whether to re-assess at all still depends on
+    // whether the user answered anything in *this* round, same as submitClarifyingAnswers
     const answered = qaPairs.filter((qa) => qa.answer)
     if (answered.length === 0) {
       requestGoalSuggestions()
@@ -204,7 +228,12 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
     try {
       const result = await apiFetch<ClarityResult>("/projects/intake/answers", {
         method: "POST",
-        body: JSON.stringify({ idea: idea.trim(), answers: answered }),
+        body: JSON.stringify({
+          category: category.trim(),
+          idea: idea.trim(),
+          previous_score: clarity.clarity_score,
+          answers: Array.from(mergedAnswers, ([question, answer]) => ({ question, answer })),
+        }),
       })
       setClarity(result)
       requestGoalSuggestions(result)
@@ -328,7 +357,7 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
               rows={7}
             />
             {intakeMutation.isError && (
-              <p className="error-text">The backend did not answer. Check that it is running on port 8000.</p>
+              <p className="error-text">{errorText(intakeMutation.error)}</p>
             )}
             <div className="panel-actions">
               <button type="button" className="secondary-button" onClick={() => setStep("description")}>
@@ -404,7 +433,7 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
               </button>
             </div>
             {(answersMutation.isError || goalsMutation.isError) && (
-              <p className="error-text">The backend did not answer. Check that it is running on port 8000.</p>
+              <p className="error-text">{errorText(answersMutation.error ?? goalsMutation.error)}</p>
             )}
           </form>
         )}
@@ -449,7 +478,7 @@ export default function IntakeFlow({ onProjectCreated }: IntakeFlowProps) {
               </button>
             </div>
             {createProjectMutation.isError && (
-              <p className="error-text">The backend did not create the project. Check that it is running on port 8000.</p>
+              <p className="error-text">{errorText(createProjectMutation.error)}</p>
             )}
           </div>
         )}

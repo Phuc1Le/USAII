@@ -4,41 +4,138 @@ from contextlib import asynccontextmanager
 import json
 import logging
 import re
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
+import secrets
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 import httpx
 
-from app.database import init_db, get_db, session_scope
-from app.config import AGENT_URL, USE_MOCK_AGENT, CHAT_SUMMARY_TRIGGER, CHAT_SUMMARY_KEEP, CHAT_SUMMARY_RE_EVERY
-from app import schemas, crud, serializers, agent_client
+from app.database import init_db, get_db, session_scope, engine
+from app.config import (
+    AGENT_URL,
+    ALLOWED_ORIGINS,
+    USE_MOCK_AGENT,
+    CHAT_SUMMARY_TRIGGER,
+    CHAT_SUMMARY_KEEP,
+    CHAT_SUMMARY_RE_EVERY,
+    DECISION_SEARCH_MIN_SCORE,
+    INTERNAL_API_TOKEN,
+    JWT_SECRET,
+)
+from app import schemas, crud, serializers, agent_client, models, auth
+from app.auth import get_current_user
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
+    if not INTERNAL_API_TOKEN:
+        logger.warning(
+            "INTERNAL_API_TOKEN is not set — /internal/* routes are unauthenticated. "
+            "Set it in .env (same value for the backend and the agent) before deploying."
+        )
+    if not JWT_SECRET:
+        logger.warning(
+            "JWT_SECRET is not set — login tokens are signed with a public dev key "
+            "and anyone can forge one. Set it in .env before deploying: "
+            'python -c "import secrets; print(secrets.token_urlsafe(32))"'
+        )
     yield
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 app = FastAPI(title="Zero to One API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
     max_age=600,
 )
+
+# ── Auth ──────────────────────────────────────────────────────────
+
+def _serialize_user(user: models.User) -> schemas.UserResponse:
+    return schemas.UserResponse(
+        id=str(user.id),
+        email=user.email,
+        display_name=user.display_name,
+    )
+
+
+@app.post("/api/v1/auth/register", response_model=schemas.TokenResponse, status_code=201)
+def register(
+    body: schemas.RegisterRequest,
+    db: Session = Depends(get_db),
+    x_user_id: str | None = Header(default=None),
+):
+    # stored lowercase so "Me@x.com" and "me@x.com" cannot become two accounts
+    email = body.email.strip().lower()
+
+    if db.query(models.User).filter(models.User.email == email).first():
+        raise HTTPException(status_code=409, detail="That email is already registered")
+
+    user = None
+    key = (x_user_id or "").strip()
+    if key:
+        candidate = db.query(models.User).filter(models.User.client_key == key).first()
+        # Claim the anonymous row this browser has been using, so whatever was
+        # created before signing up stays with the person who created it.
+        # Only if it has no credentials — otherwise registering would be a way
+        # to overwrite the password on someone else's account.
+        if candidate and not candidate.password_hash:
+            user = candidate
+
+    if user is None:
+        user = models.User(client_key=f"registered-{secrets.token_urlsafe(16)}", display_name=email)
+        db.add(user)
+
+    user.email = email
+    user.password_hash = auth.hash_password(body.password)
+    if not user.display_name or user.display_name == user.client_key[:12]:
+        user.display_name = email
+
+    try:
+        db.commit()
+    except IntegrityError:
+        # someone registered the same email between the check above and here
+        db.rollback()
+        raise HTTPException(status_code=409, detail="That email is already registered")
+    db.refresh(user)
+
+    return schemas.TokenResponse(
+        access_token=auth.create_access_token(user),
+        user=_serialize_user(user),
+    )
+
+
+@app.post("/api/v1/auth/login", response_model=schemas.TokenResponse)
+def login(body: schemas.LoginRequest, db: Session = Depends(get_db)):
+    email = body.email.strip().lower()
+    user = db.query(models.User).filter(models.User.email == email).first()
+
+    # One message for both "no such email" and "wrong password": saying which
+    # one was wrong tells an attacker which emails have accounts here.
+    if not user or not user.password_hash or not auth.verify_password(body.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+
+    return schemas.TokenResponse(
+        access_token=auth.create_access_token(user),
+        user=_serialize_user(user),
+    )
+
+
+@app.get("/api/v1/auth/me", response_model=schemas.UserResponse)
+def read_me(user: models.User = Depends(get_current_user)):
+    return _serialize_user(user)
+
 
 # ── Intake ────────────────────────────────────────────────────────
 
@@ -62,24 +159,42 @@ def get_goals(body: schemas.GoalsRequest):
 # ── Projects ──────────────────────────────────────────────────────
 
 @app.get("/api/v1/projects", response_model=list[schemas.Project])
-def list_projects(db: Session = Depends(get_db)):
-    return [serializers.serialize_project(p) for p in crud.get_all_projects(db)]
+def list_projects(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    return [serializers.serialize_project(p) for p in crud.get_all_projects(db, user.id)]
 
 
 @app.post("/api/v1/projects", response_model=schemas.Project, status_code=201)
-def create_project(body: schemas.CreateProjectRequest, db: Session = Depends(get_db)):
-    # 1. save the project row
-    db_project = crud.create_project(db, body)
+def create_project(
+    body: schemas.CreateProjectRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    # 1. ask the agent for a plan FIRST — nothing is written until it succeeds.
+    # Creating the project row first would leave an orphaned, step-less project
+    # behind (and in GET /projects) every time the agent 502s.
+    plan = agent_client.generate_plan(
+        schemas.PlanRequest(
+            category=body.category,
+            description=body.description,
+            idea=body.idea,
+            goal=body.goal,
+            complete_in=body.complete_in,
+        )
+    )
+
+    # 2. save the project row
+    db_project = crud.create_project(db, body, user.id)
 
     # save any answered clarifying questions as decisions now that the project has an id
     for qa in body.clarifying_answers:
         if qa.answer.strip():
-            crud.save_decision(db, db_project.id, f"Q: {qa.question}\nA: {qa.answer.strip()}")
-
-    # 2. ask the agent for a plan
-    plan = agent_client.generate_plan(
-        schemas.PlanRequest(idea=body.idea, goal=body.goal, complete_in=body.complete_in)
-    )
+            decision = crud.save_decision(db, db_project.id, f"Q: {qa.question}\nA: {qa.answer.strip()}")
+            # embedding is filled in the background — see _embed_decision_in_background
+            background_tasks.add_task(_embed_decision_in_background, decision.id)
 
     # 3. save steps + milestones
     db_steps = crud.create_steps_from_plan(db, db_project.id, plan.steps)
@@ -91,56 +206,154 @@ def create_project(body: schemas.CreateProjectRequest, db: Session = Depends(get
 
 
 @app.patch("/api/v1/projects/{project_id}", response_model=schemas.Project)
-def update_project(project_id: int, body: schemas.UpdateProjectRequest, db: Session = Depends(get_db)):
-    project = crud.update_project(db, project_id, body)
+def update_project(
+    project_id: int,
+    body: schemas.UpdateProjectRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    project = crud.update_project(db, project_id, body, user.id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return serializers.serialize_project(project)
 
 
 @app.get("/api/v1/projects/{project_id}", response_model=schemas.Project)
-def get_project(project_id: int, db: Session = Depends(get_db)):
-    db_project = crud.get_project(db, project_id)
+def get_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    db_project = crud.get_project(db, project_id, user.id)
     if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
     return serializers.serialize_project(db_project)
 
 
 @app.get("/api/v1/projects/{project_id}/decisions", response_model=list[schemas.Decision])
-def list_decisions(project_id: int, db: Session = Depends(get_db)):
+def list_decisions(
+    project_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    # the decisions themselves are not owned, the project is — so prove ownership
+    # of the project before handing any of them over
+    if not crud.get_project(db, project_id, user.id):
+        raise HTTPException(status_code=404, detail="Project not found")
     return [serializers.serialize_decision(d) for d in crud.get_decisions(db, project_id)]
 
 
-# ── Steps / Tasks ─────────────────────────────────────────────────
+# ── Internal (agent-only) ─────────────────────────────────────────
+# These routes hand out project data with no user scoping, so they are meant to be
+# reachable only by the agent service. They live on the same app as the public API,
+# which means "not routed to the internet" is not something we can assume.
+
+def require_internal_token(x_internal_token: str | None = Header(default=None)) -> None:
+    if not INTERNAL_API_TOKEN:
+        # not configured: startup already logged a warning — see lifespan()
+        return
+    # compare_digest, not ==, so a wrong token can't be recovered byte by byte
+    # from how long the comparison took
+    if not x_internal_token or not secrets.compare_digest(x_internal_token, INTERNAL_API_TOKEN):
+        raise HTTPException(status_code=403, detail="Invalid or missing internal token")
+
+
+@app.get(
+    "/internal/steps/{step_id}",
+    response_model=schemas.Step,
+    dependencies=[Depends(require_internal_token)],
+)
+def get_step(step_id: int, db: Session = Depends(get_db)):
+    step = crud.get_step(db, step_id)
+    if not step:
+        raise HTTPException(status_code=404, detail="Step not found")
+    return serializers.serialize_step(step)
+
+@app.get(
+    "/internal/milestones",
+    response_model=list[schemas.Milestone],
+    dependencies=[Depends(require_internal_token)],
+)
+def get_milestones(project_id: int, db: Session = Depends(get_db)):
+    milestones = crud.get_milestones(db, project_id)
+    return [serializers.serialize_milestone(m) for m in milestones]
+
+
+@app.get(
+    "/internal/decisions/search",
+    response_model=list[schemas.DecisionSearchHit],
+    dependencies=[Depends(require_internal_token)],
+)
+def search_decisions(
+    project_id: int,
+    query: str,
+    limit: int = 5,
+    min_score: float = DECISION_SEARCH_MIN_SCORE,
+    db: Session = Depends(get_db),
+):
+    if engine.dialect.name != "postgresql":
+        logger.info(
+            "skipping decision search on %s dialect (pgvector required)", engine.dialect.name
+        )
+        return []
+
+    project_exists = db.query(models.Project.id).filter(models.Project.id == project_id).first()
+    if not project_exists:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    try:
+        query_embedding = agent_client.embed_text(query)
+    except Exception:
+        logger.exception("failed to embed decision search query for project %s", project_id)
+        raise HTTPException(status_code=502, detail="Failed to embed search query")
+
+    hits = crud.search_decisions(db, project_id, query_embedding, limit, min_score)
+    return [serializers.serialize_decision_hit(d, distance) for d, distance in hits]
+
 
 @app.patch("/api/v1/steps/{step_id}", response_model=schemas.Step)
-def update_step(step_id: int, body: schemas.UpdateStepRequest, db: Session = Depends(get_db)):
-    from app.models import Step as StepModel
-    step = crud.update_step(db, step_id, body)
+def update_step(
+    step_id: int,
+    body: schemas.UpdateStepRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    step = crud.update_step(db, step_id, body, user.id)
     if not step:
         raise HTTPException(status_code=404, detail="Step not found")
     return serializers.serialize_step(step)
 
 
 @app.patch("/api/v1/milestones/{milestone_id}", response_model=schemas.Milestone)
-def update_milestone(milestone_id: int, body: schemas.UpdateMilestoneRequest, db: Session = Depends(get_db)):
-    milestone = crud.update_milestone(db, milestone_id, body)
+def update_milestone(
+    milestone_id: int,
+    body: schemas.UpdateMilestoneRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    milestone = crud.update_milestone(db, milestone_id, body, user.id)
     if not milestone:
         raise HTTPException(status_code=404, detail="Milestone not found")
     return serializers.serialize_milestone(milestone)
 
 
 @app.get("/api/v1/steps/{step_id}/tasks", response_model=list[schemas.Task])
-def get_tasks(step_id: int, db: Session = Depends(get_db)):
+def get_tasks(
+    step_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    # ownership first: the early return below hands back existing tasks without
+    # ever loading the step, so checking any later would let someone else's
+    # already-generated tasks straight out
+    step = crud.get_owned_step(db, step_id, user.id)
+    if not step:
+        raise HTTPException(status_code=404, detail="Step not found")
+
     # lazy generation: if no tasks exist yet, ask the agent to generate them
     existing = crud.get_tasks_for_step(db, step_id)
     if existing:
         return [serializers.serialize_task(t) for t in existing]
-
-    # get the step so we can pass context to the agent
-    step = db.query(__import__("app.models", fromlist=["Step"]).Step).filter_by(id=step_id).first()
-    if not step:
-        raise HTTPException(status_code=404, detail="Step not found")
 
     step_plan = schemas.StepPlan(
         title=step.title,
@@ -151,13 +364,27 @@ def get_tasks(step_id: int, db: Session = Depends(get_db)):
         depends_on=[],
     )
     subtasks = agent_client.generate_tasks(step_plan, step.project.idea)
-    db_tasks = crud.create_tasks_for_step(db, step_id, subtasks)
+    try:
+        db_tasks = crud.create_tasks_for_step(db, step_id, subtasks)
+    except IntegrityError:
+        # a concurrent request generated tasks for this step first (uq_tasks_step_order);
+        # its set is just as valid as ours, so drop ours and return the one that landed
+        db.rollback()
+        existing = crud.get_tasks_for_step(db, step_id)
+        if not existing:
+            raise
+        return [serializers.serialize_task(t) for t in existing]
     return [serializers.serialize_task(t) for t in db_tasks]
 
 
 @app.patch("/api/v1/tasks/{task_id}", response_model=schemas.Task)
-def update_task(task_id: int, body: schemas.UpdateTaskRequest, db: Session = Depends(get_db)):
-    task = crud.update_task(db, task_id, body)
+def update_task(
+    task_id: int,
+    body: schemas.UpdateTaskRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    task = crud.update_task(db, task_id, body, user.id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return serializers.serialize_task(task)
@@ -166,7 +393,16 @@ def update_task(task_id: int, body: schemas.UpdateTaskRequest, db: Session = Dep
 # ── Chat ──────────────────────────────────────────────────────────
 
 @app.post("/api/v1/chat/sessions", response_model=schemas.ChatSession)
-def open_session(body: schemas.OpenSessionRequest, db: Session = Depends(get_db)):
+def open_session(
+    body: schemas.OpenSessionRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    # the project id comes from the request body here, not the path — check it
+    # before creating anything, or opening a session would be a way to attach a
+    # conversation to someone else's project
+    if not crud.get_project(db, body.project_id, user.id):
+        raise HTTPException(status_code=404, detail="Project not found")
     session = crud.get_or_create_session(db, body)
     return serializers.serialize_session(session)
 
@@ -176,9 +412,10 @@ def send_message(
     session_id: int,
     body: schemas.SendMessageRequest,
     background: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
 ):
-    session = crud.get_session(db, session_id)
+    session = crud.get_owned_session(db, session_id, user.id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -205,7 +442,6 @@ def send_message(
 
     # real agent call — assemble context then stream
     project = session.project
-    decisions = crud.get_decisions(db, project.id)
 
     def step_context(s) -> dict:
         return {
@@ -254,13 +490,13 @@ def send_message(
 
     chat_request = {
         "session_id": str(session_id),
+        "project_id": str(project.id),
         "scope_type": session.scope_type,
         "focused_step": focused_step,
         "project_context": {
             "idea": project.idea,
             "goal": project.goal or "",
             "steps": [step_context(s) for s in project.steps],
-            "decisions": [d.content for d in decisions],
         },
         "prior_steps": prior_steps,
         "history": [
@@ -279,51 +515,84 @@ def send_message(
     def is_decision_line(text: str) -> bool:
         return bool(decision_re.match(text.strip()))
 
+    project_id = project.id
+
+    def persist_turn(visible_response: str, full_response: str) -> bool:
+        """Save the assistant turn and any decisions it declared.
+
+        Runs on its own DB session: the request's session belongs to the
+        request/response cycle, and this runs from inside the streaming body —
+        including from the `finally` path, after the client has disconnected.
+        """
+        if not visible_response.strip() and not full_response.strip():
+            return False
+
+        decision_saved = False
+        with session_scope() as own_db:
+            # persist only what the user saw — DECISION lines are structured data, not chat prose
+            crud.save_message(own_db, session_id, "assistant", visible_response.strip())
+
+            # extract and save any decisions from the raw response
+            for line in full_response.split("\n"):
+                stripped = line.strip()
+                if is_decision_line(stripped):
+                    content = decision_re.sub("", stripped).strip()
+                    if content:
+                        decision = crud.save_decision(own_db, project_id, content)
+                        decision_saved = True
+                        # embedding is filled in the background after the stream completes —
+                        # see _embed_decision_in_background. `background` is the same
+                        # BackgroundTasks collection FastAPI attaches to the response, so
+                        # tasks added here still run once the body is fully sent.
+                        background.add_task(_embed_decision_in_background, decision.id)
+        return decision_saved
+
     def real_stream():
         full_response = ""      # raw model output, including any DECISION lines
         visible_response = ""   # what the user actually sees / what gets persisted as the message
         line_buffer = ""
-        with httpx.stream("POST", f"{AGENT_URL}/agent/chat", json=chat_request) as r:
-            r.raise_for_status()
-            for line in r.iter_lines():
-                if line.startswith("data: "):
-                    payload = line[6:]
-                    if payload == "[DONE]":
-                        break
-                    try:
-                        token = json.loads(payload).get("content", "")
-                    except json.JSONDecodeError:
-                        token = payload
-                    if not token:
-                        continue
-                    full_response += token
-                    line_buffer += token
-                    # only forward complete lines, so a trailing DECISION line can be withheld
-                    while "\n" in line_buffer:
-                        nl_index = line_buffer.index("\n")
-                        complete_line = line_buffer[:nl_index + 1]
-                        line_buffer = line_buffer[nl_index + 1:]
-                        if not is_decision_line(complete_line):
-                            visible_response += complete_line
-                            yield f"data: {json.dumps({'content': complete_line})}\n\n"
+        # a long answer can take well over httpx's 5s default before the first token
+        # arrives; without this the stream dies mid-sentence on slow turns
+        timeout = httpx.Timeout(180.0, connect=10.0)
+        try:
+            with httpx.stream("POST", f"{AGENT_URL}/agent/chat", json=chat_request, timeout=timeout) as r:
+                r.raise_for_status()
+                for line in r.iter_lines():
+                    if line.startswith("data: "):
+                        payload = line[6:]
+                        if payload == "[DONE]":
+                            break
+                        try:
+                            token = json.loads(payload).get("content", "")
+                        except json.JSONDecodeError:
+                            token = payload
+                        if not token:
+                            continue
+                        full_response += token
+                        line_buffer += token
+                        # only forward complete lines, so a trailing DECISION line can be withheld
+                        while "\n" in line_buffer:
+                            nl_index = line_buffer.index("\n")
+                            complete_line = line_buffer[:nl_index + 1]
+                            line_buffer = line_buffer[nl_index + 1:]
+                            if not is_decision_line(complete_line):
+                                visible_response += complete_line
+                                yield f"data: {json.dumps({'content': complete_line})}\n\n"
 
-            if line_buffer and not is_decision_line(line_buffer):
-                visible_response += line_buffer
-                yield f"data: {json.dumps({'content': line_buffer})}\n\n"
+                if line_buffer and not is_decision_line(line_buffer):
+                    visible_response += line_buffer
+                    yield f"data: {json.dumps({'content': line_buffer})}\n\n"
+        finally:
+            # in `finally` so a client disconnect (or an agent error mid-stream) still
+            # persists whatever was generated — otherwise the turn vanishes from history
+            # and the next request rebuilds context without it
+            try:
+                decision_saved = persist_turn(visible_response, full_response)
+            except Exception:
+                logger.exception("failed to persist assistant turn for session %s", session_id)
+                decision_saved = False
 
-        # persist only what the user saw — DECISION lines are structured data, not chat prose
-        crud.save_message(db, session_id, "assistant", visible_response.strip())
-
-        # extract and save any decisions from the raw response
-        decision_saved = False
-        for line in full_response.split("\n"):
-            stripped = line.strip()
-            if is_decision_line(stripped):
-                content = decision_re.sub("", stripped).strip()
-                if content:
-                    crud.save_decision(db, project.id, content)
-                    decision_saved = True
-
+        # only reached on a clean finish — a disconnected client cannot be yielded to
         if decision_saved:
             yield f"data: {json.dumps({'decision': True})}\n\n"
 
@@ -395,3 +664,29 @@ def _summarize_in_background(session_id: int) -> None:
             _maybe_summarize(db, session_id)
     except Exception:
         logger.exception("background summarization failed for session %s", session_id)
+
+
+def _embed_decision_in_background(decision_id: int) -> None:
+    """Fill in Decision.embedding outside the request/response cycle.
+
+    Runs after the decision row is already saved, so saving never blocks
+    on a Gemini round-trip. Opens its own DB session — the request's
+    session is already closed by the time background tasks run.
+    """
+
+    try:
+        if engine.dialect.name != "postgresql":
+            logger.info(
+                "skipping decision %s embedding: pgvector requires postgresql (dialect=%s)",
+                decision_id, engine.dialect.name,
+            )
+            return
+        with session_scope() as db:
+            decision = crud.get_decision(db, decision_id)
+            if not decision:
+                return
+            embedding = agent_client.embed_text(decision.content)
+            crud.update_decision_embedding(db, decision_id, embedding)
+    except Exception:
+        # embedding failure is non-fatal — the decision itself is already saved
+        logger.exception("embedding call failed for decision %s", decision_id)

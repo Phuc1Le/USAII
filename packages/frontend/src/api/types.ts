@@ -249,8 +249,12 @@ export interface components {
         };
         /** ClarityAnswersRequest */
         ClarityAnswersRequest: {
+            /** Category */
+            category: string;
             /** Idea */
             idea: string;
+            /** Previous Score */
+            previous_score: number;
             /** Answers */
             answers: components["schemas"]["QAPair"][];
         };

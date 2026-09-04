@@ -40,6 +40,26 @@ Migrations run automatically when the backend starts (`init_db()` calls `command
 To switch from SQLite to PostgreSQL, set `DATABASE_URL=postgresql://user:pass@host:5432/dbname` in
 `.env` — the same Alembic migrations work on both.
 
+### Decision embeddings (backend data maintenance)
+Decisions get a `gemini-embedding-001` vector (3072 dims) in `Decision.embedding`, generated in a
+background task right after each decision is saved (intake clarifying answers and chat `DECISION:`
+extraction). To backfill rows saved before embeddings existed (or any rows whose background embed
+failed):
+
+```bash
+python -m app.backfill_embeddings     # postgres only; re-runnable (skips non-NULL rows)
+```
+
+The agent exposes `POST /agent/embed`; the backend proxies through it (`agent_client.embed_text`,
+with a deterministic mock branch under `USE_MOCK_AGENT`). Embedding writes are skipped on SQLite.
+
+Semantic search over decisions lives in `GET /internal/decisions/search` (backend) and the
+`query_decisions` tool function (`packages/agent/app/tools.py`): the backend embeds the query via
+`agent_client.embed_text`, then runs a project-scoped cosine-similarity search (`Decision.embedding
+<=> query_vec`, `crud.search_decisions`) with a `min_score` cutoff (`DECISION_SEARCH_MIN_SCORE`,
+default 0.5). PostgreSQL only — returns `[]` on SQLite. The tool is not yet wired into the chat
+ReAct loop.
+
 ### Agent (`packages/agent`)
 ```bash
 uvicorn app.main:app --reload --port 8001     # run (venv must be active; requires GEMINI_API_KEY unless under pytest)
@@ -85,15 +105,37 @@ what lets the backend run standalone for frontend development without Gemini acc
 - Tasks are generated lazily: `GET /api/v1/steps/{id}/tasks` only calls the agent
   (`agent_client.generate_tasks`) the first time a step has no tasks yet, then persists and reuses them.
 - Chat (`POST /api/v1/chat/sessions/{id}/messages`) streams via SSE end-to-end: frontend → backend →
-  agent, all `data: {...}\n\n` framed, terminated by a literal `data: [DONE]\n\n`. The backend re-parses
-  the agent's own SSE stream token-by-token (see `real_stream()`) to accumulate the full response so it
-  can persist it after the stream ends — the client only ever talks to the backend, never to the agent
+  agent, all `data: {...}\n\n` framed, terminated by a literal `data: [DONE]\n\n`. The backend saves the
+  user's new message to the DB *before* building the agent request, so `history` is built from
+  `session.messages[:-1][-10:]` (`main.py`) — excluding the just-saved message, which is sent
+  separately as `new_message` — to avoid sending the same message twice. The backend re-parses the
+  agent's own SSE stream token-by-token (see `real_stream()`) to accumulate the full response so it can
+  persist it after the stream ends — the client only ever talks to the backend, never to the agent
   service directly.
-- Rolling chat summarization (`_maybe_summarize`) runs synchronously before each chat call. It fires once
-  `msg_count >= CHAT_SUMMARY_TRIGGER`, then again every `CHAT_SUMMARY_KEEP + CHAT_SUMMARY_RE_EVERY`
-  messages after that. It always resends the session's first message alongside whatever's new, because
-  that message carries the original project context. Summarization failures are swallowed (`except
-  Exception: pass`) — chat must keep working even if summarization breaks.
+- Project-returning routes (`get_all_projects`/`get_project`/`update_project` in `crud.py`) eager-load
+  `steps`→`tasks`/`dependencies` and `milestones` via `selectinload(...)` — none of the relationships in
+  `models.py` set a non-default `lazy` strategy, so an un-optioned query becomes an N+1 once
+  `serializers.serialize_project`/`serialize_step` loop over them. `update_project` deliberately does
+  *not* call `db.refresh(project)` after committing — `refresh()` expires relationship attributes too,
+  which would silently undo the eager load right before `serialize_project` runs on the same object.
+  `get_step_chat_sessions` eager-loads `.messages` for the same reason (it's read in a loop while
+  building chat context in the `/agent/chat` handler's prior-step-summary assembly).
+- `_maybe_summarize` never touches the `ChatSession.messages` relationship directly — it uses
+  `crud.get_len_message` (a `COUNT` query), `get_messages_range` (offset/limit), and `get_first_message`
+  instead, so counting/slicing messages doesn't require loading the whole collection into memory.
+- Rolling chat summarization (`_maybe_summarize`) runs as a `BackgroundTasks` job after the chat response
+  is sent, not inline in `send_message` — otherwise every turn crossing the threshold would block the SSE
+  stream on a full extra Gemini round-trip. `send_message` schedules `_summarize_in_background`, which
+  opens its own DB session via `session_scope()` (`database.py`) since the request's session is closed by
+  the time the background task runs. It fires once `msg_count >= CHAT_SUMMARY_TRIGGER`, then again every
+  `CHAT_SUMMARY_KEEP + CHAT_SUMMARY_RE_EVERY` messages after that. It always resends the session's first
+  message alongside whatever's new, because that message carries the original project context.
+  Summarization failures are logged (`logger.exception`) but swallowed — chat must keep working even if
+  summarization breaks. Because background tasks for the same session can run concurrently (e.g. two
+  messages sent in quick succession) and finish out of order, `crud.update_session_summary` refuses to move
+  `summary_message_count` backwards — the guard prevents bookmark corruption but does not prevent both
+  tasks from independently calling Gemini before either commits, so an occasional duplicate summarization
+  call is possible and accepted as a low-cost tradeoff.
 - `DECISION:`-prefixed lines in an assistant response are parsed out of the finished stream and persisted
   as `Decision` rows — this is the only place decisions get written, and it's a plain string convention
   from the chat prompt, not a structured field the agent returns.
@@ -115,6 +157,15 @@ read from `DATABASE_URL` (defaults to `sqlite:///./app.db`) via `config.py`; SQL
 ### Agent internals (`packages/agent/app`)
 - `main.py` routes are all one-shot: build a prompt from typed request schemas, call Gemini, return a
   typed response — except `/agent/chat`, which streams token-by-token via `stream_text`.
+- `/agent/chat`'s prompt is not a flat string like the other routes: `build_chat_prompt` (`prompts.py`)
+  returns a `ChatPrompt(system_instruction, contents)` named tuple. `system_instruction` holds the fixed
+  rules text, the stable project-context JSON, and the rolling summary — nothing there was "said" by
+  either party, so it's not part of the conversation. `contents` is a `list[types.Content]`, one
+  role-tagged turn per real message (`history` + the latest message), built via `_to_gemini_role()`,
+  which maps the wire format's `"assistant"` to Gemini's own `"model"` role — that mapping exists only
+  at this one boundary; the DB, backend API, and frontend all use `"assistant"` and must keep doing so.
+  `stream_text` (`llm.py`) takes `contents` and `system_instruction` separately and passes them to
+  Gemini as `contents=` and `GenerateContentConfig(system_instruction=...)`.
 - `_normalize_clarity` is applied after every clarity call (`/agent/clarity` and `/agent/clarity/answers`)
   to clamp `clarity_score` to [0,1], recompute `needs_clarification` from `CLARITY_THRESHOLD`, cap
   questions at 3, and inject a fallback question if the model claims low clarity but returned none.
@@ -130,7 +181,16 @@ read from `DATABASE_URL` (defaults to `sqlite:///./app.db`) via `config.py`; SQL
   manipulating history with a hand-rolled `navigate()` (pushState + manual `popstate` dispatch).
 - Client-side project state is persisted to `sessionStorage` (`zero-to-one:projects`,
   `zero-to-one:last-project`) as the source of truth for "which project(s) exist" and "which is selected"
-  — the backend is not re-queried for the project list on navigation.
+  — the backend is not re-queried for the project list on navigation, *except* as a fallback: `App.tsx`
+  has an effect that calls `GET /projects` only when local `projects` state is empty (a fresh tab/session
+  has no `sessionStorage` yet even though the backend already has projects), then hydrates both state
+  and storage from that response.
+- In `IntakeFlow.tsx`'s clarifying-question loop, "Skip question" and "Skip assessment" both explicitly
+  exclude the in-progress (unsaved) answer and force it blank before advancing — neither should let
+  whatever's currently typed leak into `confirmedAnswers` or the agent's re-assessment call. "Skip
+  assessment" only re-assesses (calls `/projects/intake/answers`) if at least one earlier question in
+  the round was actually answered; otherwise it skips straight to goal suggestions, same as
+  `submitClarifyingAnswers` short-circuiting when a whole round ends up blank.
 - `features/intake/` is the pre-project-creation flow (category/idea intake → clarify → goals → plan
   preview); `features/project/` is the post-creation dashboard. `api/client.ts` is the only place that
   knows the backend's base URL and SSE framing (`streamChat` parses `data: ...\n\n` the same way the

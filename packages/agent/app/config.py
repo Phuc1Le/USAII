@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import os
 from dotenv import load_dotenv
 
 
@@ -11,13 +11,18 @@ except IndexError:
 load_dotenv()
 
 GEMINI_API_KEY = ""
-GEMINI_MODEL = "gemini-2.5-flash"
+SERP_API_KEY = ""
+GEMINI_MODEL = "gemini-3.6-flash"
+EMBEDDING_MODEL = "gemini-embedding-001"
 CHAT_HISTORY_LIMIT = 20
 CLARITY_THRESHOLD = 0.7
 CHAT_SUMMARY_TRIGGER = 6
 CHAT_SUMMARY_KEEP = 3
 CHAT_SUMMARY_RE_EVERY = 2
-
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
+# Sent as X-Internal-Token on every backend /internal/* call. Must match the
+# backend's INTERNAL_API_TOKEN; empty means the backend has it disabled too.
+INTERNAL_API_TOKEN = os.environ.get("INTERNAL_API_TOKEN", "")
 
 def _int_from_env(name: str, default: int) -> int:
     import os
@@ -47,14 +52,18 @@ def _load_settings() -> None:
     import os
     import sys
 
-    global GEMINI_API_KEY, GEMINI_MODEL, CHAT_HISTORY_LIMIT, CLARITY_THRESHOLD
+    global GEMINI_API_KEY, SERP_API_KEY, GEMINI_MODEL, CHAT_HISTORY_LIMIT, CLARITY_THRESHOLD
     global CHAT_SUMMARY_TRIGGER, CHAT_SUMMARY_KEEP, CHAT_SUMMARY_RE_EVERY
+    global EMBEDDING_MODEL
 
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
     if not GEMINI_API_KEY and "pytest" not in sys.modules:
         raise RuntimeError("GEMINI_API_KEY is required to start the agent service")
-
+    # Optional: only web_search needs it, so a missing key must not take down
+    # the whole agent service (every other route works fine without it).
+    SERP_API_KEY = os.environ.get("SERP_API_KEY", "")
     GEMINI_MODEL = os.environ.get("GEMINI_MODEL", GEMINI_MODEL)
+    EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", EMBEDDING_MODEL)
     CHAT_HISTORY_LIMIT = _int_from_env("CHAT_HISTORY_LIMIT", CHAT_HISTORY_LIMIT)
     CLARITY_THRESHOLD = _float_from_env("CLARITY_THRESHOLD", CLARITY_THRESHOLD)
     CHAT_SUMMARY_TRIGGER = _int_from_env("CHAT_SUMMARY_TRIGGER", CHAT_SUMMARY_TRIGGER)

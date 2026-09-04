@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    Column, Integer, String, Text, DateTime, ForeignKey
+    Column, Integer, String, Text, DateTime, ForeignKey, UniqueConstraint
 )
 from sqlalchemy.orm import DeclarativeBase, relationship
 from datetime import datetime, timezone
@@ -10,10 +10,41 @@ class Base(DeclarativeBase):
     pass
 
 
+class User(Base):
+    """Who owns a project.
+
+    Deliberately has no email or password yet: identity currently comes from an
+    X-User-Id header the client sends, which separates people's data but does not
+    prove who they are. Adding real login later means adding columns here and
+    changing where get_current_user reads the id from — no data migration, and
+    nothing that already filters by user_id has to change.
+    """
+
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    # what the client sends as X-User-Id: an opaque value it generated and stored
+    # itself, so it never has to ask the backend who it is. Replaced by the subject
+    # of a verified token once real login exists.
+    client_key = Column(String, nullable=False, unique=True)
+    # Both nullable: a user exists from the first request, long before anyone
+    # registers. Having no password is what makes an account "anonymous", and
+    # that is exactly the condition get_current_user uses to decide whether the
+    # X-User-Id header is still allowed to speak for this row.
+    email = Column(String, nullable=True, unique=True)
+    password_hash = Column(String, nullable=True)
+    # a name the person can read, e.g. "local-dev" — not used for lookups
+    display_name = Column(String, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    projects = relationship("Project", back_populates="user")
+
+
 class Project(Base):
     __tablename__ = "projects"
 
     id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     title = Column(String, nullable=False)
     category = Column(String, nullable=False)
     description = Column(Text, nullable=False)
@@ -23,6 +54,7 @@ class Project(Base):
     status = Column(String, nullable=False, default="intake")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+    user = relationship("User", back_populates="projects")
     steps = relationship("Step", back_populates="project", cascade="all, delete-orphan")
     milestones = relationship("Milestone", back_populates="project", cascade="all, delete-orphan")
     chat_sessions = relationship("ChatSession", back_populates="project", cascade="all, delete-orphan")
@@ -64,6 +96,11 @@ class StepDependency(Base):
 
 class Task(Base):
     __tablename__ = "tasks"
+    # tasks are generated lazily on first read of a step; two concurrent readers
+    # would otherwise both find the step empty and both insert a full set
+    __table_args__ = (
+        UniqueConstraint("step_id", "order_index", name="uq_tasks_step_order"),
+    )
 
     id = Column(Integer, primary_key=True)
     step_id = Column(Integer, ForeignKey("steps.id"), nullable=False)
@@ -123,7 +160,7 @@ class Decision(Base):
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     content = Column(Text, nullable=False)
-    embedding = Column(Vector(768), nullable=True)
+    embedding = Column(Vector(3072), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     project = relationship("Project", back_populates="decisions")

@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react"
 import type { Project } from "./api"
-import { apiFetch } from "./api/client"
+import {
+  apiFetch,
+  clearSession,
+  getStoredUser,
+  SIGNED_OUT_EVENT,
+  type AuthUser,
+} from "./api/client"
+import AuthPanel from "./features/auth/AuthPanel"
 import IntakeFlow from "./features/intake/IntakeFlow"
 import ProjectDashboard from "./features/intake/components/ProjectDashboard"
 
@@ -23,6 +30,7 @@ function navigate(path: string) {
 
 export default function App() {
   const [path, setPath] = useState(() => window.location.pathname)
+  const [user, setUser] = useState<AuthUser | null>(() => getStoredUser())
   const [projects, setProjects] = useState<Project[]>(() =>
     readStored<Project[]>(PROJECTS_KEY, []),
   )
@@ -40,6 +48,27 @@ export default function App() {
       syncPath()
     }
     return () => window.removeEventListener("popstate", syncPath)
+  }, [])
+
+  // The cached projects belong to whoever was signed in when they were cached.
+  // Signing in or out changes who the backend answers as, so the cache has to go
+  // with the old identity — otherwise the new one briefly sees someone else's list.
+  function forgetCachedProjects() {
+    sessionStorage.removeItem(PROJECTS_KEY)
+    sessionStorage.removeItem(SELECTED_KEY)
+    setProjects([])
+    setSelectedProject(null)
+  }
+
+  // A token can expire in the middle of any request, so client.ts clears the
+  // session and announces it once rather than every caller handling a 401.
+  useEffect(() => {
+    function handleSignedOut() {
+      setUser(null)
+      forgetCachedProjects()
+    }
+    window.addEventListener(SIGNED_OUT_EVENT, handleSignedOut)
+    return () => window.removeEventListener(SIGNED_OUT_EVENT, handleSignedOut)
   }, [])
 
   // sessionStorage is scoped per tab, so a fresh tab/session lands here with no local
@@ -64,7 +93,7 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [projects.length])
+  }, [projects.length, user?.id])
 
   function handleProjectCreated(created: Project) {
     setProjects((prev) => {
@@ -82,17 +111,61 @@ export default function App() {
     sessionStorage.setItem(SELECTED_KEY, JSON.stringify(p))
   }
 
+  function handleSignedIn(signedIn: AuthUser) {
+    setUser(signedIn)
+    // Registering keeps this browser's projects, but signing in as someone else
+    // does not — either way the safe move is to drop the cache and re-read.
+    forgetCachedProjects()
+    navigate("/home")
+  }
+
+  function handleSignOut() {
+    clearSession()
+    setUser(null)
+    forgetCachedProjects()
+    navigate("/home")
+  }
+
+  if (path === "/login") {
+    return <AuthPanel onSignedIn={handleSignedIn} onCancel={() => navigate("/home")} />
+  }
+
+  const accountBar = (
+    <div className="account-bar">
+      {user ? (
+        <>
+          <span>{user.email ?? user.display_name}</span>
+          <button type="button" onClick={handleSignOut}>
+            Sign out
+          </button>
+        </>
+      ) : (
+        <button type="button" onClick={() => navigate("/login")}>
+          Sign in
+        </button>
+      )}
+    </div>
+  )
+
   if (path === "/dashboard") {
     return (
-      <ProjectDashboard
-        key={selectedProject?.id ?? "none"}
-        projects={projects}
-        selectedProject={selectedProject}
-        onSelectProject={handleSelectProject}
-        onBackHome={() => navigate("/home")}
-      />
+      <>
+        {accountBar}
+        <ProjectDashboard
+          key={selectedProject?.id ?? "none"}
+          projects={projects}
+          selectedProject={selectedProject}
+          onSelectProject={handleSelectProject}
+          onBackHome={() => navigate("/home")}
+        />
+      </>
     )
   }
 
-  return <IntakeFlow onProjectCreated={handleProjectCreated} />
+  return (
+    <>
+      {accountBar}
+      <IntakeFlow onProjectCreated={handleProjectCreated} />
+    </>
+  )
 }
