@@ -3,7 +3,7 @@ import logging
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, ToolCallPart, UserPromptPart, TextPart
 from pydantic_ai.usage import UsageLimits
-from pydantic_ai.exceptions import UsageLimitExceeded
+from pydantic_ai.exceptions import ModelHTTPError, UsageLimitExceeded
 from app import tools
 from app.config import GEMINI_MODEL
 from app.schemas import ChatMessage, WebSearchResult
@@ -73,3 +73,30 @@ async def run_chat(agent: Agent, prompt: str, deps: ChatDeps, message_history: l
     except UsageLimitExceeded:
         logger.warning("chat turn for project %s hit the tool_calls_limit cap", deps.project_id)
         return "I started looking into this but hit a processing limit before I could finish — could you rephrase or narrow the question?"
+    except ModelHTTPError as exc:
+        # By the time this runs, /agent/chat has already sent HTTP 200 and started
+        # the SSE body — there is no status code left to fail with. Letting the
+        # exception escape aborts the response mid-stream, which reaches the browser
+        # as a bare "network error" with the real reason only in the agent's log.
+        # Returning a sentence keeps the stream well-formed and puts the reason
+        # where the person asking can actually read it.
+        logger.warning(
+            "chat turn for project %s failed: model returned %s",
+            deps.project_id, exc.status_code,
+        )
+        if exc.status_code == 429:
+            return (
+                "The AI service is out of quota right now, so I could not answer this one. "
+                "Free-tier keys reset daily — try again later, or switch to a key with billing enabled."
+            )
+        if exc.status_code >= 500:
+            return (
+                "The AI service is temporarily unavailable — it is usually a short spike in demand. "
+                "Please try that again in a moment."
+            )
+        return f"The AI service refused that request ({exc.status_code}). The agent log has the details."
+    except Exception:
+        # Same reasoning as above: whatever went wrong, the stream still has to end
+        # in a readable way rather than a severed connection.
+        logger.exception("chat turn for project %s failed unexpectedly", deps.project_id)
+        return "Something went wrong while answering that. The agent log has the details."
